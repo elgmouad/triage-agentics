@@ -1,0 +1,17 @@
+# archivo|título|etiquetas|milestone
+HU-01.md|HU-01 · Crear un ticket|user-story,mvp,area:tickets|Hito 2
+HU-02.md|HU-02 · Consultar mis tickets|user-story,mvp,area:tickets|Hito 2
+HU-03.md|HU-03 · Triaje automático por IA|user-story,mvp,area:agente-ia|Hito 2
+HU-04.md|HU-04 · Continuidad del triaje ante fallos de la IA|user-story,mvp,area:agente-ia|Hito 2
+HU-05.md|HU-05 · Validar el triaje y responder al cliente|user-story,mvp,area:tickets|Hito 2
+HU-06.md|HU-06 · Gestionar el ciclo de vida del ticket|user-story,mvp,area:tickets|Hito 2
+HU-07.md|HU-07 · Escalado automático por SLA|user-story,mvp,area:tickets|Hito 2
+HU-08.md|HU-08 · Reintentar el triaje pendiente|user-story,mvp,area:agente-ia|Hito 2
+HU-09.md|HU-09 · Métricas de tickets y consumo de IA|user-story,area:agente-ia|Hito 5
+HU-10.md|HU-10 · Repositorio y flujo de trabajo|user-story,area:documentacion|Hito 1
+HU-11.md|HU-11 · Documentación de diseño del proyecto|user-story,area:documentacion|Hito 1
+HU-12.md|HU-12 · Entorno local con contenedores|user-story,area:infraestructura|Hito 2
+HU-13.md|HU-13 · Integración continua|user-story,area:infraestructura|Hito 2
+HU-14.md|HU-14 · Infraestructura como código y reconciliación|user-story,area:infraestructura|Hito 3
+HU-15.md|HU-15 · Despliegue continuo y seguridad|user-story,area:infraestructura|Hito 4
+HU-16.md|HU-16 · Observabilidad, pruebas de carga y release final|user-story,area:infraestructura|Hito 5
