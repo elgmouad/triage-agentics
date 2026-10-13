@@ -149,11 +149,168 @@ Chaque tri enregistre le **fournisseur utilisé**, le **nombre de tokens** conso
 
 ## 4. Justification NIST SP 800-145
 
-> 🚧 *À rédiger* — analyse des 5 caractéristiques essentielles : autoservice à la demande, large accès réseau, mutualisation des ressources, élasticité rapide, service mesuré.
+> Référence : P. Mell, T. Grance, *The NIST Definition of Cloud Computing*, NIST SP 800-145, 2011. https://doi.org/10.6028/NIST.SP.800-145
+
+Le NIST définit le cloud computing par **5 caractéristiques essentielles**. Cette section montre comment TriageAI les exploite et pourquoi le problème métier (section 1) a **besoin** du cloud.
+
+### 4.1 Synthèse
+
+| Caractéristique NIST | Besoin métier de TriageAI | Mécanisme technique | Hito où elle sera démontrée |
+|---|---|---|---|
+| **Autoservice à la demande** (*Autoservicio bajo demanda*) | Ajouter de la capacité ou un environnement sans intervention humaine du fournisseur | Infrastructure décrite en code (IaC), configuration externalisée | Hito 3, Hito 4 |
+| **Large accès réseau** (*Acceso amplio a la red*) | Clients et agents de support dispersés, sur tout type d'appareil | API REST sur HTTPS via un point d'entrée unique | Hito 1 (API), Hito 4 (déploiement) |
+| **Mutualisation des ressources** (*Asignación común de recursos*) | Servir plusieurs entreprises clientes avec la même plateforme | Modèle multi-locataire, ressources physiques partagées du fournisseur | Hito 3 |
+| **Élasticité rapide** (*Rápida elasticidad*) | Absorber des pics de tickets ×10 lors d'une panne ou d'un lancement | Services sans état réplicables, file d'événements Redis Streams | Hito 2, Hito 5 (tests de charge) |
+| **Service mesuré** (*Servicio medido*) | Connaître et maîtriser le coût de chaque ticket trié par IA | Traçabilité des tokens et latences (RN-07), métriques Actuator | Hito 1 (conception), Hito 5 (observabilité) |
+
+### 4.2 Autoservice à la demande
+
+**Définition NIST (résumée) :** le consommateur peut obtenir lui-même des capacités de calcul (serveurs, stockage…) automatiquement, **sans interaction humaine** avec le fournisseur.
+
+**Application à TriageAI :**
+
+- Toute l'infrastructure (conteneurs, réseau, base de données, cache) sera décrite par du code et créée par une simple commande, sans ticket adressé à un administrateur (Hito 3).
+- Un nouvel environnement complet (test, démonstration, production) peut être obtenu à la demande à partir des mêmes fichiers.
+- Côté IA, l'accès à l'API Anthropic s'obtient en libre-service : création d'une clé et facturation à l'usage, sans contrat ni matériel.
+- Les paramètres métier (délais SLA, ordre des fournisseurs LLM, seuil de confiance) se modifient dans le dépôt de configuration, sans redéploiement du code.
+
+### 4.3 Large accès réseau
+
+**Définition NIST (résumée) :** les capacités sont disponibles sur le réseau et accessibles par des mécanismes standards, depuis des clients hétérogènes (ordinateurs, mobiles, tablettes…).
+
+**Application à TriageAI :**
+
+- Toutes les fonctionnalités sont exposées par une **API REST standard** (HTTP, JSON, OpenAPI) derrière `api-gateway` : n'importe quel client (application web, mobile, outil interne, intégration d'un autre logiciel) peut l'utiliser.
+- Les clients signalent leurs problèmes depuis n'importe où ; les agents de support peuvent travailler à distance.
+- Le contrat de l'API est documenté et versionné (`/api/v1`), ce qui facilite l'intégration par des tiers.
+
+### 4.4 Mutualisation des ressources
+
+**Définition NIST (résumée) :** les ressources du fournisseur sont regroupées pour servir plusieurs consommateurs selon un **modèle multi-locataire**, et réaffectées dynamiquement selon la demande. Le consommateur ne connaît pas l'emplacement exact des ressources.
+
+**Application à TriageAI :**
+
+- **Côté fournisseur cloud :** les conteneurs de TriageAI s'exécutent sur une infrastructure physique partagée avec d'autres clients du fournisseur ; TriageAI ne gère ni serveurs ni centre de données.
+- **Côté TriageAI :** la plateforme est conçue pour servir **plusieurs entreprises clientes** (PME) avec les mêmes instances de services, la même base de données et le même cache. La séparation est logique (identifiant du client sur chaque ticket), pas physique.
+- **Côté IA :** l'API Anthropic est elle-même un service mutualisé entre de nombreux consommateurs ; TriageAI n'en paie que la part utilisée.
+
+### 4.5 Élasticité rapide
+
+**Définition NIST (résumée) :** les capacités peuvent être augmentées ou réduites rapidement, parfois automatiquement, en fonction de la demande. Pour le consommateur, elles semblent illimitées.
+
+**Application à TriageAI :** c'est la caractéristique la plus importante pour le projet, car la charge de support est **très irrégulière** (section 1.1).
+
+- **Services sans état :** `servicio-tickets` et `servicio-agente-triaje` ne gardent aucune donnée en mémoire ; on peut donc lancer 1, 3 ou 10 répliques selon la charge.
+- **File d'événements :** lors d'un pic, les tickets sont enregistrés immédiatement et les événements `ticket.creado` s'accumulent dans Redis Streams. Les répliques de l'agent IA, membres du même groupe de consommateurs, se **partagent le travail** automatiquement.
+- **Indicateur d'élasticité :** la longueur de la file `ticket-events` est une métrique naturelle pour déclencher l'ajout ou la suppression de répliques.
+- **Élasticité de l'IA :** si le fournisseur local (Ollama) est saturé, le circuit breaker bascule vers l'API Anthropic, qui absorbe la charge supplémentaire.
+
+**Illustration (hypothèses chiffrées à titre d'exemple) :** une charge normale demande 1 réplique de l'agent IA et un pic en demande 10 pendant 5 % du temps.
+
+| Approche | Capacité payée | Équivalent machines sur l'année |
+|---|---|---|
+| Serveurs propres dimensionnés pour le pic | 10 répliques en permanence | 10 |
+| Cloud élastique | 1 réplique × 95 % + 10 répliques × 5 % | **1,45** |
+
+Dans cet exemple, l'élasticité réduit la capacité payée d'environ **85 %**. Les vrais chiffres seront mesurés lors des tests de charge du Hito 5.
+
+### 4.6 Service mesuré
+
+**Définition NIST (résumée) :** l'usage des ressources est automatiquement **mesuré, contrôlé et rapporté**, ce qui assure la transparence pour le fournisseur et le consommateur (paiement à l'usage).
+
+**Application à TriageAI :**
+
+- **Mesure de l'IA (RN-07) :** chaque appel LLM enregistre le fournisseur, le modèle, les tokens d'entrée et de sortie, la latence et le résultat (table `llamada_llm`). Le **coût de chaque ticket trié** est donc calculable.
+- **Mesure de l'infrastructure :** chaque service expose ses métriques (Spring Boot Actuator, Micrometer) : requêtes, erreurs, temps de réponse, consommation mémoire.
+- **Contrôle :** le rate limiting du gateway et le choix du fournisseur LLM (local gratuit en priorité) limitent la consommation.
+- **Rapport :** l'endpoint `GET /api/v1/triaje/metricas` (CU-08) fournit la consommation par fournisseur et par période. Il servira de base à une **facturation par ticket** des entreprises clientes.
+
+### 4.7 Modèles de service et de déploiement
+
+Le NIST SP 800-145 définit aussi des modèles de service et de déploiement. TriageAI s'y positionne ainsi :
+
+| Point de vue | Modèle |
+|---|---|
+| TriageAI vu par les entreprises clientes | **SaaS** (*Software as a Service*) : application complète consommée via l'API |
+| Ce que TriageAI consomme pour s'exécuter | **IaaS / PaaS** d'un fournisseur cloud public (à choisir au Hito 3) |
+| Ce que TriageAI consomme pour l'IA | **SaaS / API** : modèle de langage d'Anthropic, facturé à l'usage |
+| Modèle de déploiement | **Cloud public**, avec exécution locale possible du LLM (Ollama) |
+
+---
 
 ## 5. Mapping des acteurs NIST SP 500-292
 
-> 🚧 *À rédiger* — rôles Consommateur, Fournisseur, Courtier, Auditeur, Opérateur (*Carrier*), avec analyse de l'impact économique.
+> Référence : F. Liu et al., *NIST Cloud Computing Reference Architecture*, NIST SP 500-292, 2011. https://doi.org/10.6028/NIST.SP.500-292
+
+L'architecture de référence du NIST définit **5 acteurs**. Pour TriageAI, il faut distinguer deux niveaux : TriageAI **fournit** un service à des entreprises, et TriageAI **consomme** lui-même des services cloud.
+
+### 5.1 Vue d'ensemble
+
+```mermaid
+flowchart LR
+    subgraph CONS["Consommateurs (Consumidor)"]
+        PME["Entreprises clientes (PME)<br/>et leurs agents de support"]
+        CLI["Clients finaux<br/>qui créent des tickets"]
+    end
+
+    subgraph PROV["Fournisseurs (Proveedor)"]
+        TAI["TriageAI<br/>fournisseur SaaS"]
+        IAAS["Fournisseur cloud public<br/>IaaS / PaaS"]
+        ANT["Anthropic<br/>API LLM"]
+    end
+
+    BRK["Intermédiaire (Intermediario)<br/>LlmRouter : arbitrage<br/>Ollama / Anthropic"]
+    AUD["Auditeur (Auditor)<br/>RGPD · sécurité · SLA"]
+    CAR["Opérateur réseau (Operador)<br/>FAI · réseau du fournisseur · Internet"]
+
+    CLI --> PME
+    PME -- "consomme le SaaS" --> TAI
+    TAI -- "s'exécute sur" --> IAAS
+    TAI --> BRK
+    BRK -- "arbitre entre" --> ANT
+    AUD -. "audite" .-> TAI
+    CAR -. "transporte" .-> PME
+    CAR -. "transporte" .-> ANT
+```
+
+### 5.2 Détail des rôles
+
+| Rôle NIST | Acteur(s) dans TriageAI | Activités dans le projet | Impact économique |
+|---|---|---|---|
+| **Consommateur** (*Cloud Consumer* / *Consumidor*) | ① Les **entreprises clientes** (PME) et leurs agents de support, qui consomment TriageAI en SaaS. ② **L'équipe TriageAI**, qui consomme de l'IaaS/PaaS et l'API Anthropic | Utiliser l'API, valider les tris, suivre les SLA ; pour l'équipe TriageAI : déployer et payer les ressources consommées | Les PME passent d'un **coût fixe** (agents qui trient à la main) à un **coût variable** par ticket ; l'équipe TriageAI n'a **aucun investissement matériel** (CapEx → OpEx) |
+| **Fournisseur** (*Cloud Provider* / *Proveedor*) | ① **TriageAI** (fournisseur SaaS). ② Le **fournisseur cloud public** (IaaS/PaaS, choisi au Hito 3). ③ **Anthropic** (API LLM) | TriageAI : déploiement, orchestration, gestion du service, sécurité et confidentialité des données de tickets. Fournisseur cloud : calcul, stockage, réseau. Anthropic : inférence du modèle | TriageAI se rémunère **par ticket traité** ou par abonnement ; ses coûts sont l'infrastructure + les tokens. Le fournisseur cloud et Anthropic facturent **à l'usage** (heures de calcul, tokens) |
+| **Intermédiaire** (*Cloud Broker* / *Intermediario*) | Le composant **`LlmRouter`** de `servicio-agente-triaje` remplit les fonctions d'un broker entre fournisseurs LLM. Un broker externe (place de marché, agrégateur d'API LLM) pourrait aussi jouer ce rôle | **Intermédiation** : interface unique (Spring AI) quel que soit le fournisseur. **Arbitrage** : choix dynamique Ollama ↔ Anthropic selon disponibilité et coût (circuit breaker, ordre configurable). **Agrégation** : un seul service de tri bâti sur plusieurs fournisseurs | Évite la **dépendance à un fournisseur unique** (*vendor lock-in*) ; privilégie le fournisseur gratuit (local) et n'utilise le fournisseur payant qu'en secours ; le cache Redis évite de repayer des tris identiques |
+| **Auditeur** (*Cloud Auditor* / *Auditor*) | Un **auditeur externe indépendant** : délégué à la protection des données, cabinet d'audit de sécurité, ou l'entreprise cliente qui vérifie les SLA | **Audit de confidentialité** : les tickets contiennent des données personnelles (RGPD, et en Espagne la LOPDGDD) ; envoi de données à une API externe. **Audit de sécurité** : gestion des secrets, surface d'exposition. **Audit de performance** : respect des SLA et taux d'escalade | La **traçabilité intégrée** (historique des états, RN-07, métriques) réduit le coût d'un audit ; la conformité évite des sanctions et rassure les clients. Le mode Ollama local permet de **ne pas faire sortir les données** si un client l'exige |
+| **Opérateur réseau** (*Cloud Carrier* / *Operador*) | Les **fournisseurs d'accès à Internet** des clients, le **réseau du fournisseur cloud**, et Internet entre la plateforme et l'API Anthropic | Transporter les requêtes HTTPS entre les clients et `api-gateway`, et entre `servicio-agente-triaje` et Anthropic | Coût du **trafic sortant** (*egress*) facturé par le fournisseur cloud ; la latence réseau s'ajoute à celle du LLM. Les payloads JSON compacts et le cache limitent ce trafic |
+
+### 5.3 Analyse de l'impact économique
+
+**1. Passage de CapEx à OpEx** (*inversión de capital → gasto operativo*)
+Aucun achat de serveurs ni de GPU : toutes les ressources sont louées et payées à l'usage. Le risque financier au lancement du service est donc faible.
+
+**2. Coût d'un ticket trié** — le service mesuré (section 4.6) permet de le calculer :
+
+```
+Coût par ticket = Coût LLM + Coût infrastructure / nombre de tickets
+
+Coût LLM (Anthropic) = tokens_entrée × prix_entrée + tokens_sortie × prix_sortie
+Coût LLM (Ollama)    = 0 € d'API, mais du temps de calcul (CPU/GPU) facturé par le fournisseur cloud
+```
+
+Les prix unitaires seront relevés sur les pages tarifaires officielles au moment du déploiement ; les volumes de tokens seront mesurés grâce à RN-07.
+
+**3. Leviers de réduction des coûts intégrés à l'architecture**
+
+| Levier | Effet |
+|---|---|
+| Fournisseur local Ollama en priorité | Pas de coût par token pour le cas nominal |
+| Cache Redis des tris | Un ticket identique (ex. panne massive) n'est payé qu'une fois |
+| Élasticité (section 4.5) | On ne paie la capacité de pointe que pendant les pics |
+| Rate limiting au gateway | Empêche un client d'épuiser le budget d'API |
+| Tri par règles en dernier recours | Le service continue sans aucun coût d'IA |
+
+**4. Retour sur investissement pour les entreprises clientes**
+Si un agent humain passe en moyenne *t* minutes à trier un ticket, l'économie mensuelle est d'environ `tickets_par_mois × t × coût_horaire_agent / 60`, à comparer au prix payé à TriageAI. La validation humaine reste obligatoire (RN-05), mais elle est plus rapide qu'un tri complet.
 
 ## 6. Architecture
 
@@ -173,7 +330,7 @@ TriageAI suit une **architecture de microservices** (*arquitectura de microservi
 
 ### 6.2 Diagramme de composants
 
-![Diagramme de composants TriageAI](docs/img/arquitectura-componentes.png)
+![Diagramme de composants TriageAI](docs/img/arquitectura-componentes.svg)
 
 > Le **plan de contrôle** (découverte de services et configuration) est représenté séparément en 6.3 pour garder ce diagramme lisible.
 
@@ -213,100 +370,47 @@ resilience4j.circuitbreaker.instances:
   anthropic: { failureRateThreshold: 50, waitDurationInOpenState: 60s }
 ```
 
-### 6.4 Flux principal : cycle de vie complet d'un ticket
-
-Le diagramme suit un ticket de sa création à sa clôture, en 5 phases :
-
-| Phase | Contenu | Mode |
-|---|---|---|
-| 1 | Création du ticket (CU-01) | Synchrone |
-| 2 | Tri par l'agent IA avec basculement Ollama → Anthropic (CU-03) | Asynchrone |
-| 3 | Enregistrement du résultat ou tri par règles (RN-04, RN-06, RN-07) | Asynchrone |
-| 4 | Validation humaine, réponse et résolution (CU-04, CU-05) | Synchrone |
-| 5 | Consultation par le client et clôture automatique (CU-02) | Synchrone |
+### 6.4 Flux principal : création et tri d'un ticket
 
 ```mermaid
 sequenceDiagram
     autonumber
     actor C as Client
-    actor S as Agent de support
     participant GW as api-gateway
     participant TK as servicio-tickets
-    participant RD as Redis Streams
+    participant RD as Redis
     participant AG as servicio-agente-triaje
     participant OL as Ollama
     participant AN as API Anthropic
 
-    rect rgb(224, 242, 254)
-    Note over C,TK: Phase 1 — Création du ticket (CU-01) · synchrone
-    C->>+GW: POST /api/v1/tickets {titulo, descripcion}
-    GW->>+TK: POST /tickets
-    TK->>TK: validation · état NOUVEAU · échéances SLA (RN-02)
-    TK->>RD: XADD ticket-events {tipo: ticket.creado, id}
-    TK-->>-GW: 201 Created {id, estado: NOUVEAU}
-    GW-->>-C: 201 Created {id, estado: NOUVEAU}
-    end
+    C->>GW: POST /api/v1/tickets
+    GW->>TK: POST /tickets
+    TK->>TK: validation · état NOUVEAU · calcul des échéances SLA
+    TK->>RD: XADD ticket-events {ticket.creado}
+    TK-->>GW: 201 Created {id, estado: NOUVEAU}
+    GW-->>C: 201 Created
 
-    rect rgb(243, 232, 255)
-    Note over RD,AN: Phase 2 — Tri par l'agent IA (CU-03) · asynchrone
-    RD-->>+AG: XREADGROUP → ticket.creado
-    AG->>+TK: GET /internal/tickets/{id}
-    TK-->>-AG: 200 OK contenu du ticket
-    alt Circuit Ollama CLOSED (cas nominal)
-        AG->>+OL: POST /api/chat (ticket + définition des outils)
-        OL-->>AG: appel d'outil : obtenerHistorialCliente
-        AG->>+TK: GET /internal/clientes/{id}/historial
-        TK-->>-AG: 200 OK historique du client
+    RD-->>AG: XREADGROUP → ticket.creado
+    alt Circuit Ollama fermé (CLOSED)
+        AG->>OL: POST /api/chat (ticket + définition des outils)
+        OL-->>AG: demande d'outil : obtenerHistorialCliente
+        AG->>TK: GET /internal/clientes/{id}/historial
+        TK-->>AG: historique du client
         AG->>OL: POST /api/chat (résultat de l'outil)
-        OL-->>-AG: JSON {categoria, prioridad, resumen, confianza, borrador}
-    else Ollama en échec (timeout · erreur · JSON invalide) ou circuit OPEN
-        AG->>+AN: POST /v1/messages (ticket + définition des outils)
-        Note right of AN: même boucle de tool calling
-        AN-->>-AG: JSON {categoria, prioridad, resumen, confianza, borrador}
-    end
+        OL-->>AG: JSON {categoria, prioridad, resumen, confianza, borrador}
+    else Ollama en échec (timeout · erreur · JSON invalide) ou circuit ouvert
+        AG->>AN: POST /v1/messages (même boucle de tool calling)
+        AN-->>AG: JSON {categoria, prioridad, resumen, confianza, borrador}
     end
 
-    rect rgb(220, 252, 231)
-    Note over TK,AG: Phase 3 — Enregistrement du résultat (RN-04, RN-06, RN-07)
     alt Tri obtenu
-        AG->>+TK: PUT /internal/tickets/{id}/triaje {modo: IA, ..., trazabilidad}
-        TK->>TK: NOUVEAU → TRIE · révision manuelle si confiance < 0,7
-        TK-->>-AG: 200 OK
+        AG->>TK: PUT /internal/tickets/{id}/triaje {modo: IA, ..., trazabilidad}
+        TK->>TK: NOUVEAU → TRIÉ · révision manuelle si confiance < 0,7
     else Les deux fournisseurs ont échoué
-        AG->>+TK: PUT /internal/tickets/{id}/triaje {modo: REGLAS}
+        AG->>TK: PUT /internal/tickets/{id}/triaje {modo: REGLAS}
         TK->>TK: tri par mots-clés · NOUVEAU → EN_ATTENTE_DE_TRI
-        TK-->>-AG: 200 OK
-        Note over TK: nouvel essai planifié (CU-07)
     end
-    AG->>-RD: XACK ticket-events (événement traité)
-    end
-
-    rect rgb(254, 243, 199)
-    Note over GW,S: Phase 4 — Validation humaine et réponse (CU-04, CU-05) · RN-05
-    S->>+GW: GET /api/v1/tickets?estado=TRIE
-    GW->>+TK: GET /tickets?estado=TRIE
-    TK-->>-GW: 200 OK tickets + proposition de l'IA
-    GW-->>-S: 200 OK
-    S->>+GW: POST /api/v1/tickets/{id}/respuesta {texto validado}
-    GW->>+TK: POST /tickets/{id}/respuesta
-    TK->>TK: TRIE → EN_COURS · réponse enregistrée
-    TK-->>-GW: 201 Created
-    GW-->>-S: 201 Created
-    S->>+GW: PATCH /api/v1/tickets/{id}/estado {RESOLU}
-    GW->>+TK: PATCH /tickets/{id}/estado
-    TK->>TK: EN_COURS → RESOLU (RN-01)
-    TK-->>-GW: 200 OK
-    GW-->>-S: 200 OK
-    end
-
-    rect rgb(241, 245, 249)
-    Note over C,TK: Phase 5 — Consultation et clôture (CU-02)
-    C->>+GW: GET /api/v1/tickets/{id}
-    GW->>+TK: GET /tickets/{id}
-    TK-->>-GW: 200 OK {estado: RESOLU, respuesta}
-    GW-->>-C: 200 OK {estado: RESOLU, respuesta}
-    Note over TK: Planificateur : 7 jours sans réouverture → FERME
-    end
+    AG->>RD: XACK (événement traité)
 ```
 
 **Pourquoi un tri asynchrone ?** Un appel LLM peut prendre de 2 à 60 secondes. Le client reçoit immédiatement `201 Created` ; le tri se fait en arrière-plan. Si `servicio-agente-triaje` est arrêté, les événements restent dans le stream Redis et seront traités à son redémarrage : **aucun ticket n'est perdu**.

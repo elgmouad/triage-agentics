@@ -1,0 +1,16 @@
+# Normalización de finales de línea
+* text=auto
+
+# Scripts y datos que deben conservar LF (también en Windows)
+*.sh   text eol=lf
+*.tsv  text eol=lf
+mvnw   text eol=lf
+
+# Scripts de Windows
+*.cmd  text eol=crlf
+*.bat  text eol=crlf
+
+# Binarios
+*.png  binary
+*.jpg  binary
+*.jar  binary

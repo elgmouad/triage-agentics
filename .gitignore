@@ -1,0 +1,101 @@
+# ============================================================
+#  TriageAI — .gitignore
+#  Stack: Java 21 · Maven · Spring Boot · Docker
+# ============================================================
+
+# ---------- Secretos y variables de entorno (¡NUNCA en Git!) ----------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.jks
+secrets/
+
+# ---------- Java / compilación ----------
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+hs_err_pid*
+replay_pid*
+
+# ---------- Maven ----------
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# ---------- Gradle (por si algún módulo lo usa) ----------
+.gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# ---------- Spring Boot ----------
+*.log
+logs/
+spring-shell.log
+
+# ---------- IntelliJ IDEA ----------
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# ---------- Eclipse / Spring Tool Suite ----------
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings/
+.springBeans
+.sts4-cache/
+bin/
+
+# ---------- VS Code ----------
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+
+# ---------- NetBeans ----------
+nbproject/private/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
+
+# ---------- Docker / datos locales ----------
+docker-data/
+volumes/
+*.pid
+
+# ---------- Infraestructura como código (Hito 3) ----------
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+.terraform.lock.hcl.bak
+
+# ---------- Sistema operativo ----------
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*~
+
+# ---------- Pruebas de carga e informes (Hito 5) ----------
+reports/
+*.jtl
