@@ -173,44 +173,7 @@ TriageAI suit une **architecture de microservices** (*arquitectura de microservi
 
 ### 6.2 Diagramme de composants
 
-```mermaid
-flowchart TB
-    CLI["👤 Client · Agent de support · Superviseur<br/>(Postman / Swagger UI)"]
-
-    subgraph PLAT["Plateforme TriageAI — réseau Docker interne"]
-        direction TB
-        GW["<b>api-gateway</b><br/>Spring Cloud Gateway<br/>:8080 — seul port exposé"]
-
-        subgraph BIZ["Services métier"]
-            TK["<b>servicio-tickets</b><br/>Spring Boot · Spring Data JPA<br/>machine à états · SLA · escalade<br/>tri par règles · planificateur<br/>:8081"]
-            AG["<b>servicio-agente-triaje</b><br/>Spring Boot · Spring AI · Resilience4j<br/>agent IA · tool calling<br/>LlmRouter + circuit breaker<br/>:8082"]
-        end
-
-        subgraph DATA["Persistance et cache"]
-            PG[("<b>PostgreSQL</b> :5432<br/>schéma tickets<br/>schéma agente")]
-            RD[("<b>Redis</b> :6379<br/>rate limiting<br/>cache des tris<br/>stream ticket-events")]
-        end
-
-        OL["<b>ollama</b> :11434<br/>LLM local (conteneur)<br/>volume persistant des modèles"]
-    end
-
-    AN["<b>API Anthropic</b><br/>LLM externe (SaaS)"]
-
-    CLI -- "HTTPS · REST / JSON" --> GW
-    GW -- "HTTP · REST / JSON<br/>/api/v1/tickets/**" --> TK
-    GW -- "HTTP · REST / JSON<br/>/api/v1/triaje/**" --> AG
-    GW -. "RESP · compteurs rate limiting" .-> RD
-
-    TK -- "JDBC · SQL" --> PG
-    TK -- "RESP · XADD ticket.creado" --> RD
-    RD -- "RESP · XREADGROUP" --> AG
-    AG -- "HTTP · REST / JSON<br/>outils de l'agent + résultat du tri" --> TK
-    AG -- "JDBC · SQL" --> PG
-    AG -. "RESP · cache" .-> RD
-
-    AG -- "① primaire · HTTP · /api/chat" --> OL
-    AG -- "② secondaire · HTTPS · /v1/messages" --> AN
-```
+![Diagramme de composants TriageAI](docs/img/arquitectura-componentes.png)
 
 > Le **plan de contrôle** (découverte de services et configuration) est représenté séparément en 6.3 pour garder ce diagramme lisible.
 
@@ -250,47 +213,100 @@ resilience4j.circuitbreaker.instances:
   anthropic: { failureRateThreshold: 50, waitDurationInOpenState: 60s }
 ```
 
-### 6.4 Flux principal : création et tri d'un ticket
+### 6.4 Flux principal : cycle de vie complet d'un ticket
+
+Le diagramme suit un ticket de sa création à sa clôture, en 5 phases :
+
+| Phase | Contenu | Mode |
+|---|---|---|
+| 1 | Création du ticket (CU-01) | Synchrone |
+| 2 | Tri par l'agent IA avec basculement Ollama → Anthropic (CU-03) | Asynchrone |
+| 3 | Enregistrement du résultat ou tri par règles (RN-04, RN-06, RN-07) | Asynchrone |
+| 4 | Validation humaine, réponse et résolution (CU-04, CU-05) | Synchrone |
+| 5 | Consultation par le client et clôture automatique (CU-02) | Synchrone |
 
 ```mermaid
 sequenceDiagram
     autonumber
     actor C as Client
+    actor S as Agent de support
     participant GW as api-gateway
     participant TK as servicio-tickets
-    participant RD as Redis
+    participant RD as Redis Streams
     participant AG as servicio-agente-triaje
     participant OL as Ollama
     participant AN as API Anthropic
 
-    C->>GW: POST /api/v1/tickets
-    GW->>TK: POST /tickets
-    TK->>TK: validation · état NOUVEAU · calcul des échéances SLA
-    TK->>RD: XADD ticket-events {ticket.creado}
-    TK-->>GW: 201 Created {id, estado: NOUVEAU}
-    GW-->>C: 201 Created
+    rect rgb(224, 242, 254)
+    Note over C,TK: Phase 1 — Création du ticket (CU-01) · synchrone
+    C->>+GW: POST /api/v1/tickets {titulo, descripcion}
+    GW->>+TK: POST /tickets
+    TK->>TK: validation · état NOUVEAU · échéances SLA (RN-02)
+    TK->>RD: XADD ticket-events {tipo: ticket.creado, id}
+    TK-->>-GW: 201 Created {id, estado: NOUVEAU}
+    GW-->>-C: 201 Created {id, estado: NOUVEAU}
+    end
 
-    RD-->>AG: XREADGROUP → ticket.creado
-    alt Circuit Ollama fermé (CLOSED)
-        AG->>OL: POST /api/chat (ticket + définition des outils)
-        OL-->>AG: demande d'outil : obtenerHistorialCliente
-        AG->>TK: GET /tickets/clientes/{id}/historial
-        TK-->>AG: historique du client
+    rect rgb(243, 232, 255)
+    Note over RD,AN: Phase 2 — Tri par l'agent IA (CU-03) · asynchrone
+    RD-->>+AG: XREADGROUP → ticket.creado
+    AG->>+TK: GET /internal/tickets/{id}
+    TK-->>-AG: 200 OK contenu du ticket
+    alt Circuit Ollama CLOSED (cas nominal)
+        AG->>+OL: POST /api/chat (ticket + définition des outils)
+        OL-->>AG: appel d'outil : obtenerHistorialCliente
+        AG->>+TK: GET /internal/clientes/{id}/historial
+        TK-->>-AG: 200 OK historique du client
         AG->>OL: POST /api/chat (résultat de l'outil)
-        OL-->>AG: JSON {categoria, prioridad, resumen, confianza, borrador}
-    else Ollama en échec (timeout · erreur · JSON invalide) ou circuit ouvert
-        AG->>AN: POST /v1/messages (même boucle de tool calling)
-        AN-->>AG: JSON {categoria, prioridad, resumen, confianza, borrador}
+        OL-->>-AG: JSON {categoria, prioridad, resumen, confianza, borrador}
+    else Ollama en échec (timeout · erreur · JSON invalide) ou circuit OPEN
+        AG->>+AN: POST /v1/messages (ticket + définition des outils)
+        Note right of AN: même boucle de tool calling
+        AN-->>-AG: JSON {categoria, prioridad, resumen, confianza, borrador}
+    end
     end
 
+    rect rgb(220, 252, 231)
+    Note over TK,AG: Phase 3 — Enregistrement du résultat (RN-04, RN-06, RN-07)
     alt Tri obtenu
-        AG->>TK: PUT /tickets/{id}/triaje {resultado, proveedor, tokens, latencia}
-        TK->>TK: NOUVEAU → TRIÉ · révision manuelle si confiance < 0,7
+        AG->>+TK: PUT /internal/tickets/{id}/triaje {modo: IA, ..., trazabilidad}
+        TK->>TK: NOUVEAU → TRIE · révision manuelle si confiance < 0,7
+        TK-->>-AG: 200 OK
     else Les deux fournisseurs ont échoué
-        AG->>TK: PUT /tickets/{id}/triaje {modo: REGLAS}
+        AG->>+TK: PUT /internal/tickets/{id}/triaje {modo: REGLAS}
         TK->>TK: tri par mots-clés · NOUVEAU → EN_ATTENTE_DE_TRI
+        TK-->>-AG: 200 OK
+        Note over TK: nouvel essai planifié (CU-07)
     end
-    AG->>RD: XACK (événement traité)
+    AG->>-RD: XACK ticket-events (événement traité)
+    end
+
+    rect rgb(254, 243, 199)
+    Note over GW,S: Phase 4 — Validation humaine et réponse (CU-04, CU-05) · RN-05
+    S->>+GW: GET /api/v1/tickets?estado=TRIE
+    GW->>+TK: GET /tickets?estado=TRIE
+    TK-->>-GW: 200 OK tickets + proposition de l'IA
+    GW-->>-S: 200 OK
+    S->>+GW: POST /api/v1/tickets/{id}/respuesta {texto validado}
+    GW->>+TK: POST /tickets/{id}/respuesta
+    TK->>TK: TRIE → EN_COURS · réponse enregistrée
+    TK-->>-GW: 201 Created
+    GW-->>-S: 201 Created
+    S->>+GW: PATCH /api/v1/tickets/{id}/estado {RESOLU}
+    GW->>+TK: PATCH /tickets/{id}/estado
+    TK->>TK: EN_COURS → RESOLU (RN-01)
+    TK-->>-GW: 200 OK
+    GW-->>-S: 200 OK
+    end
+
+    rect rgb(241, 245, 249)
+    Note over C,TK: Phase 5 — Consultation et clôture (CU-02)
+    C->>+GW: GET /api/v1/tickets/{id}
+    GW->>+TK: GET /tickets/{id}
+    TK-->>-GW: 200 OK {estado: RESOLU, respuesta}
+    GW-->>-C: 200 OK {estado: RESOLU, respuesta}
+    Note over TK: Planificateur : 7 jours sans réouverture → FERME
+    end
 ```
 
 **Pourquoi un tri asynchrone ?** Un appel LLM peut prendre de 2 à 60 secondes. Le client reçoit immédiatement `201 Created` ; le tri se fait en arrière-plan. Si `servicio-agente-triaje` est arrêté, les événements restent dans le stream Redis et seront traités à son redémarrage : **aucun ticket n'est perdu**.
@@ -361,7 +377,296 @@ sequenceDiagram
 
 ## 7. Spécification de l'API REST
 
-> 🚧 *À rédiger* — routes, verbes HTTP et payloads JSON.
+### 7.1 Conventions générales
+
+| Élément | Convention |
+|---|---|
+| **URL de base (externe)** | `http://localhost:8080/api/v1` — toutes les requêtes externes passent par `api-gateway` |
+| **Versionnement** | Dans le chemin (`/api/v1`) ; une évolution incompatible donnera `/api/v2` |
+| **Format** | JSON (`Content-Type: application/json`), encodage UTF-8 |
+| **Dates** | ISO 8601 en UTC (`2026-10-13T14:05:00Z`) |
+| **Identifiants** | UUID |
+| **Pagination** | `?page=0&size=20` ; la réponse contient `contenido`, `pagina`, `tamano`, `totalElementos` |
+| **Erreurs** | Format standard *Problem Details* (RFC 9457, `application/problem+json`), pris en charge nativement par Spring Boot |
+| **Documentation vivante** | Générée par **springdoc-openapi** : Swagger UI sur `/swagger-ui.html`, contrat OpenAPI sur `/v3/api-docs` |
+| **Authentification** | Hors périmètre du MVP ; l'identifiant du client est transmis dans le corps de la requête |
+
+**Routage du gateway :** `api-gateway` retire le préfixe `/api/v1` avant de transmettre la requête.
+
+| Chemin externe | Service cible | Chemin interne |
+|---|---|---|
+| `/api/v1/tickets/**` | `servicio-tickets` | `/tickets/**` |
+| `/api/v1/triaje/**` | `servicio-agente-triaje` | `/triaje/**` |
+
+Les chemins `/internal/**` ne sont **jamais routés** par le gateway : ils ne sont accessibles que depuis le réseau Docker interne.
+
+### 7.2 Valeurs énumérées
+
+| Champ | Valeurs possibles |
+|---|---|
+| `estado` | `NOUVEAU`, `EN_ATTENTE_DE_TRI`, `TRIE`, `EN_COURS`, `RESOLU`, `FERME` (RN-01) |
+| `prioridad` | `CRITIQUE`, `HAUTE`, `MOYENNE`, `BASSE` (RN-02) |
+| `categoria` | `INCIDENT`, `FACTURATION`, `COMPTE`, `QUESTION`, `AUTRE` |
+| `modo` (du tri) | `IA` (tri par LLM), `REGLAS` (tri de secours par mots-clés) |
+| `proveedor` | `OLLAMA`, `ANTHROPIC`, `NINGUNO` (tri par règles) |
+
+### 7.3 Vue d'ensemble des endpoints
+
+#### API publique — `servicio-tickets` (via le gateway)
+
+| Verbe | Route | Description | Cas d'utilisation | Réponses |
+|---|---|---|---|---|
+| `POST` | `/api/v1/tickets` | Créer un ticket | CU-01 | `201`, `400` |
+| `GET` | `/api/v1/tickets` | Lister les tickets (filtres : `estado`, `prioridad`, `categoria`, `escalado`, `revisionManual`, `clienteId`) | CU-02, CU-04 | `200` |
+| `GET` | `/api/v1/tickets/{id}` | Consulter un ticket, son tri et ses échéances SLA | CU-02 | `200`, `404` |
+| `GET` | `/api/v1/tickets/{id}/historial` | Historique des changements d'état | CU-02 | `200`, `404` |
+| `PATCH` | `/api/v1/tickets/{id}/triaje` | Corriger le tri proposé par l'IA (catégorie, priorité) | CU-04 | `200`, `404`, `409` |
+| `POST` | `/api/v1/tickets/{id}/respuesta` | Envoyer une réponse validée par un agent humain | CU-04 | `201`, `404`, `409` |
+| `PATCH` | `/api/v1/tickets/{id}/estado` | Changer l'état du ticket | CU-05 | `200`, `404`, `409` |
+| `POST` | `/api/v1/tickets/{id}/reapertura` | Rouvrir un ticket résolu (≤ 7 jours) | CU-09 *(extension)* | `200`, `404`, `409` |
+
+#### API publique — `servicio-agente-triaje` (via le gateway)
+
+| Verbe | Route | Description | Cas d'utilisation | Réponses |
+|---|---|---|---|---|
+| `GET` | `/api/v1/triaje/proveedores` | État des fournisseurs LLM et de leurs circuit breakers | CU-08 | `200` |
+| `POST` | `/api/v1/triaje/tickets/{id}/reintento` | Relancer manuellement le tri IA d'un ticket | CU-07 | `202`, `404`, `409` |
+| `GET` | `/api/v1/triaje/metricas` | Consommation par fournisseur : appels, tokens, latence, taux d'échec (`?desde=&hasta=`) | CU-08 *(extension)* | `200` |
+
+#### API interne — `servicio-tickets` (réseau interne uniquement)
+
+Endpoints utilisés par l'agent IA, soit comme **outils** (*tool calling*), soit pour enregistrer le résultat.
+
+| Verbe | Route | Appelant | Description | Réponses |
+|---|---|---|---|---|
+| `GET` | `/internal/tickets/{id}` | Agent IA | Lire le ticket à trier | `200`, `404` |
+| `GET` | `/internal/clientes/{clienteId}/historial` | Agent IA (outil `obtenerHistorialCliente`) | Derniers tickets du client et leur résolution | `200` |
+| `PUT` | `/internal/tickets/{id}/triaje` | Agent IA | Enregistrer le résultat du tri (IA ou échec → règles) | `200`, `404`, `409` |
+
+#### Contrat asynchrone — Redis Streams
+
+| Stream | Événement | Producteur | Consommateur (groupe) |
+|---|---|---|---|
+| `ticket-events` | `ticket.creado` | `servicio-tickets` | `servicio-agente-triaje` (groupe `triaje`) |
+
+#### Endpoints techniques (non exposés)
+
+`GET /actuator/health` sur chaque service : utilisé pour la supervision et les *health checks* des conteneurs.
+
+### 7.4 Détail des endpoints principaux
+
+#### `POST /api/v1/tickets` — Créer un ticket (CU-01)
+
+Requête :
+
+```json
+{
+  "clienteId": "c2a9f1d4-7b3e-4c1a-9e55-0d2f8b6a4e10",
+  "titulo": "Impossible de me connecter à mon compte",
+  "descripcion": "Depuis ce matin, j'obtiens l'erreur 500 après avoir saisi mon mot de passe. Toute l'équipe est bloquée."
+}
+```
+
+Réponse `201 Created` (en-tête `Location: /api/v1/tickets/8b1d3c52-4e7a-4f0e-9a51-2c7d9e6f1a30`) :
+
+```json
+{
+  "id": "8b1d3c52-4e7a-4f0e-9a51-2c7d9e6f1a30",
+  "estado": "NOUVEAU",
+  "creadoEn": "2026-10-13T14:05:00Z"
+}
+```
+
+Validation : `titulo` obligatoire (5 à 150 caractères), `descripcion` obligatoire (10 à 5 000 caractères), `clienteId` obligatoire.
+Effet de bord : publication de l'événement `ticket.creado` ; le tri se fait ensuite en arrière-plan.
+
+#### `GET /api/v1/tickets/{id}` — Consulter un ticket (CU-02)
+
+Réponse `200 OK` (après le tri par l'IA) :
+
+```json
+{
+  "id": "8b1d3c52-4e7a-4f0e-9a51-2c7d9e6f1a30",
+  "clienteId": "c2a9f1d4-7b3e-4c1a-9e55-0d2f8b6a4e10",
+  "titulo": "Impossible de me connecter à mon compte",
+  "descripcion": "Depuis ce matin, j'obtiens l'erreur 500 après avoir saisi mon mot de passe. Toute l'équipe est bloquée.",
+  "estado": "TRIE",
+  "categoria": "INCIDENT",
+  "prioridad": "CRITIQUE",
+  "escalado": false,
+  "revisionManual": false,
+  "sla": {
+    "primeraRespuestaAntes": "2026-10-13T15:05:00Z",
+    "resolucionAntes": "2026-10-13T22:05:00Z"
+  },
+  "triaje": {
+    "modo": "IA",
+    "proveedor": "OLLAMA",
+    "confianza": 0.91,
+    "resumen": "Erreur 500 à la connexion bloquant toute une équipe depuis ce matin.",
+    "borradorRespuesta": "Bonjour, nous avons bien identifié le problème de connexion et notre équipe technique est mobilisée…"
+  },
+  "creadoEn": "2026-10-13T14:05:00Z",
+  "actualizadoEn": "2026-10-13T14:05:07Z"
+}
+```
+
+> Le brouillon (`borradorRespuesta`) n'est **jamais** envoyé automatiquement au client (RN-05).
+
+#### `PATCH /api/v1/tickets/{id}/triaje` — Corriger le tri (CU-04)
+
+Requête (agent de support) :
+
+```json
+{
+  "categoria": "COMPTE",
+  "prioridad": "HAUTE",
+  "motivo": "Problème limité à un seul compte, pas un incident global."
+}
+```
+
+Réponse `200 OK` : le ticket complet, avec `triaje.corregidoPorHumano: true`. Les délais SLA sont recalculés selon la nouvelle priorité.
+
+#### `POST /api/v1/tickets/{id}/respuesta` — Envoyer une réponse validée (CU-04)
+
+Requête :
+
+```json
+{
+  "agenteId": "a71e0c3b-2f4d-4e8a-b6c9-5d1e3f7a9b20",
+  "texto": "Bonjour, nous avons réinitialisé votre session. Pouvez-vous réessayer de vous connecter ?",
+  "basadoEnBorrador": true
+}
+```
+
+Réponse `201 Created` :
+
+```json
+{
+  "respuestaId": "f3b8a2d1-6c4e-4b7f-8a9d-1e2c3b4a5f60",
+  "ticketId": "8b1d3c52-4e7a-4f0e-9a51-2c7d9e6f1a30",
+  "estado": "EN_COURS",
+  "enviadaEn": "2026-10-13T14:20:00Z"
+}
+```
+
+Règles : autorisé uniquement si le ticket est `TRIE` ou `EN_COURS`, sinon `409`. La première réponse arrête le chronomètre SLA de « première réponse ».
+
+#### `PATCH /api/v1/tickets/{id}/estado` — Changer l'état (CU-05)
+
+Requête :
+
+```json
+{
+  "estado": "RESOLU",
+  "comentario": "Session réinitialisée, le client confirme que l'accès fonctionne."
+}
+```
+
+Réponse `200 OK` : le ticket complet avec son nouvel état.
+
+Exemple d'erreur `409 Conflict` (transition non autorisée par RN-01) :
+
+```json
+{
+  "type": "https://triageai.example/errores/transicion-invalida",
+  "title": "Transition d'état non autorisée",
+  "status": 409,
+  "detail": "Impossible de passer de NOUVEAU à RESOLU.",
+  "instance": "/api/v1/tickets/8b1d3c52-4e7a-4f0e-9a51-2c7d9e6f1a30/estado",
+  "transicionesPermitidas": ["TRIE", "EN_ATTENTE_DE_TRI"]
+}
+```
+
+#### `PUT /internal/tickets/{id}/triaje` — Enregistrer le résultat du tri (interne)
+
+Cas 1 — tri réussi par l'IA :
+
+```json
+{
+  "modo": "IA",
+  "categoria": "INCIDENT",
+  "prioridad": "CRITIQUE",
+  "confianza": 0.91,
+  "resumen": "Erreur 500 à la connexion bloquant toute une équipe depuis ce matin.",
+  "borradorRespuesta": "Bonjour, nous avons bien identifié le problème…",
+  "trazabilidad": {
+    "proveedor": "OLLAMA",
+    "modelo": "<modèle configuré>",
+    "tokensEntrada": 812,
+    "tokensSalida": 164,
+    "latenciaMs": 6430,
+    "intentos": 1
+  }
+}
+```
+
+Cas 2 — les deux fournisseurs ont échoué :
+
+```json
+{
+  "modo": "REGLAS",
+  "motivoFallo": "OLLAMA: timeout ; ANTHROPIC: HTTP 429",
+  "trazabilidad": { "proveedor": "NINGUNO", "intentos": 2 }
+}
+```
+
+Réponse `200 OK`. Le service applique RN-04 (révision manuelle si `confianza < 0,7`) ou RN-06 (tri par mots-clés, état `EN_ATTENTE_DE_TRI`). Les valeurs `tokens` et `latenciaMs` alimentent RN-07.
+
+#### `GET /internal/clientes/{clienteId}/historial` — Outil de l'agent
+
+Réponse `200 OK` (5 derniers tickets) :
+
+```json
+{
+  "clienteId": "c2a9f1d4-7b3e-4c1a-9e55-0d2f8b6a4e10",
+  "totalTickets": 7,
+  "ticketsRecientes": [
+    { "id": "1c7e…", "titulo": "Facture en double", "categoria": "FACTURATION", "prioridad": "MOYENNE", "estado": "FERME", "creadoEn": "2026-09-28T09:12:00Z" }
+  ]
+}
+```
+
+#### `GET /api/v1/triaje/proveedores` — État des fournisseurs LLM
+
+Réponse `200 OK` :
+
+```json
+{
+  "orden": ["OLLAMA", "ANTHROPIC"],
+  "proveedores": [
+    { "nombre": "OLLAMA",    "circuito": "CLOSED", "tasaFallos": 0.04, "latenciaMediaMs": 5200 },
+    { "nombre": "ANTHROPIC", "circuito": "CLOSED", "tasaFallos": 0.00, "latenciaMediaMs": 1900 }
+  ]
+}
+```
+
+#### Événement `ticket.creado` (Redis Streams)
+
+```json
+{
+  "eventoId": "e4d2c1b0-9a8f-4e7d-8c6b-5a4f3e2d1c00",
+  "tipo": "ticket.creado",
+  "version": 1,
+  "ticketId": "8b1d3c52-4e7a-4f0e-9a51-2c7d9e6f1a30",
+  "ocurridoEn": "2026-10-13T14:05:00Z"
+}
+```
+
+L'événement ne transporte que l'identifiant : l'agent lit le contenu à jour via `GET /internal/tickets/{id}`. Le champ `version` permet de faire évoluer le format sans casser le consommateur.
+
+### 7.5 Codes de réponse utilisés
+
+| Code | Signification | Exemple |
+|---|---|---|
+| `200 OK` | Lecture ou modification réussie | `GET /tickets/{id}` |
+| `201 Created` | Ressource créée (en-tête `Location`) | `POST /tickets` |
+| `202 Accepted` | Traitement accepté, exécuté en arrière-plan | `POST /triaje/tickets/{id}/reintento` |
+| `400 Bad Request` | Données invalides (validation) | `titulo` manquant |
+| `404 Not Found` | Ressource inexistante | identifiant inconnu |
+| `409 Conflict` | Opération incompatible avec l'état actuel | transition `NOUVEAU → RESOLU` |
+| `429 Too Many Requests` | Limite de débit dépassée (gateway) | trop de requêtes d'un même client |
+| `503 Service Unavailable` | Service cible indisponible | service métier arrêté |
 
 ## 8. Gestion du projet
 

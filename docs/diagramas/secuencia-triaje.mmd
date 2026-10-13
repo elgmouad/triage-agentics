@@ -1,0 +1,81 @@
+sequenceDiagram
+    autonumber
+    actor C as Client
+    actor S as Agent de support
+    participant GW as api-gateway
+    participant TK as servicio-tickets
+    participant RD as Redis Streams
+    participant AG as servicio-agente-triaje
+    participant OL as Ollama
+    participant AN as API Anthropic
+
+    rect rgb(224, 242, 254)
+    Note over C,TK: Phase 1 — Création du ticket (CU-01) · synchrone
+    C->>+GW: POST /api/v1/tickets {titulo, descripcion}
+    GW->>+TK: POST /tickets
+    TK->>TK: validation · état NOUVEAU · échéances SLA (RN-02)
+    TK->>RD: XADD ticket-events {tipo: ticket.creado, id}
+    TK-->>-GW: 201 Created {id, estado: NOUVEAU}
+    GW-->>-C: 201 Created {id, estado: NOUVEAU}
+    end
+
+    rect rgb(243, 232, 255)
+    Note over RD,AN: Phase 2 — Tri par l'agent IA (CU-03) · asynchrone
+    RD-->>+AG: XREADGROUP → ticket.creado
+    AG->>+TK: GET /internal/tickets/{id}
+    TK-->>-AG: 200 OK contenu du ticket
+    alt Circuit Ollama CLOSED (cas nominal)
+        AG->>+OL: POST /api/chat (ticket + définition des outils)
+        OL-->>AG: appel d'outil : obtenerHistorialCliente
+        AG->>+TK: GET /internal/clientes/{id}/historial
+        TK-->>-AG: 200 OK historique du client
+        AG->>OL: POST /api/chat (résultat de l'outil)
+        OL-->>-AG: JSON {categoria, prioridad, resumen, confianza, borrador}
+    else Ollama en échec (timeout · erreur · JSON invalide) ou circuit OPEN
+        AG->>+AN: POST /v1/messages (ticket + définition des outils)
+        Note right of AN: même boucle de tool calling
+        AN-->>-AG: JSON {categoria, prioridad, resumen, confianza, borrador}
+    end
+    end
+
+    rect rgb(220, 252, 231)
+    Note over TK,AG: Phase 3 — Enregistrement du résultat (RN-04, RN-06, RN-07)
+    alt Tri obtenu
+        AG->>+TK: PUT /internal/tickets/{id}/triaje {modo: IA, ..., trazabilidad}
+        TK->>TK: NOUVEAU → TRIE · révision manuelle si confiance < 0,7
+        TK-->>-AG: 200 OK
+    else Les deux fournisseurs ont échoué
+        AG->>+TK: PUT /internal/tickets/{id}/triaje {modo: REGLAS}
+        TK->>TK: tri par mots-clés · NOUVEAU → EN_ATTENTE_DE_TRI
+        TK-->>-AG: 200 OK
+        Note over TK: nouvel essai planifié (CU-07)
+    end
+    AG->>-RD: XACK ticket-events (événement traité)
+    end
+
+    rect rgb(254, 243, 199)
+    Note over GW,S: Phase 4 — Validation humaine et réponse (CU-04, CU-05) · RN-05
+    S->>+GW: GET /api/v1/tickets?estado=TRIE
+    GW->>+TK: GET /tickets?estado=TRIE
+    TK-->>-GW: 200 OK tickets + proposition de l'IA
+    GW-->>-S: 200 OK
+    S->>+GW: POST /api/v1/tickets/{id}/respuesta {texto validado}
+    GW->>+TK: POST /tickets/{id}/respuesta
+    TK->>TK: TRIE → EN_COURS · réponse enregistrée
+    TK-->>-GW: 201 Created
+    GW-->>-S: 201 Created
+    S->>+GW: PATCH /api/v1/tickets/{id}/estado {RESOLU}
+    GW->>+TK: PATCH /tickets/{id}/estado
+    TK->>TK: EN_COURS → RESOLU (RN-01)
+    TK-->>-GW: 200 OK
+    GW-->>-S: 200 OK
+    end
+
+    rect rgb(241, 245, 249)
+    Note over C,TK: Phase 5 — Consultation et clôture (CU-02)
+    C->>+GW: GET /api/v1/tickets/{id}
+    GW->>+TK: GET /tickets/{id}
+    TK-->>-GW: 200 OK {estado: RESOLU, respuesta}
+    GW-->>-C: 200 OK {estado: RESOLU, respuesta}
+    Note over TK: Planificateur : 7 jours sans réouverture → FERME
+    end
