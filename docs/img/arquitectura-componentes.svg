@@ -19,20 +19,20 @@
 <linearGradient id="h-git" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#374151"/><stop offset="1" stop-color="#374151" stop-opacity="0.82"/></linearGradient>
 </defs>
 <rect width="1600" height="1130" fill="url(#bg)"/>
-<text x="40" y="54" font-size="28" font-weight="800" fill="#0F172A">TriageAI <tspan fill="#94A3B8" font-weight="400">—</tspan> Architecture de référence</text>
-<text x="40" y="82" font-size="14" fill="#64748B">Diagramme de composants · protocoles de communication · stockage — Hito 1, Cloud Computing (UGR 2026-27)</text>
+<text x="40" y="54" font-size="28" font-weight="800" fill="#0F172A">TriageAI <tspan fill="#94A3B8" font-weight="400">—</tspan> Reference Architecture</text>
+<text x="40" y="82" font-size="14" fill="#64748B">Component diagram · communication protocols · storage — Hito 1, Cloud Computing (UGR 2026-27)</text>
 <rect x="40" y="205" width="1225" height="790" rx="22" fill="#FFFFFF" stroke="#64748B" stroke-width="1.6" stroke-dasharray="10 6"/>
 <rect x="760" y="192" width="367.7" height="26" rx="13" fill="#FFFFFF" stroke="#64748B" stroke-width="1.2"/>
-<text x="774" y="210" font-size="12.5" font-weight="700" fill="#64748B" letter-spacing="0.4">PLATEFORME TRIAGEAI · RÉSEAU DOCKER INTERNE</text>
+<text x="774" y="210" font-size="12.5" font-weight="700" fill="#64748B" letter-spacing="0.4">TRIAGEAI PLATFORM · INTERNAL DOCKER NETWORK</text>
 <rect x="65" y="255" width="285" height="330" rx="22" fill="#F8FAFC" stroke="#475569" stroke-width="1.6" stroke-dasharray="8 6"/>
-<rect x="83" y="242" width="154.4" height="26" rx="13" fill="#FFFFFF" stroke="#475569" stroke-width="1.2"/>
-<text x="97" y="260" font-size="12.5" font-weight="700" fill="#475569" letter-spacing="0.4">PLAN DE CONTRÔLE</text>
+<rect x="83" y="242" width="130.7" height="26" rx="13" fill="#FFFFFF" stroke="#475569" stroke-width="1.2"/>
+<text x="97" y="260" font-size="12.5" font-weight="700" fill="#475569" letter-spacing="0.4">CONTROL PLANE</text>
 <rect x="375" y="405" width="865" height="225" rx="22" fill="#F8FAFF" stroke="#6366F1" stroke-width="1.6" stroke-dasharray="8 6"/>
-<rect x="393" y="392" width="146.5" height="26" rx="13" fill="#FFFFFF" stroke="#6366F1" stroke-width="1.2"/>
-<text x="407" y="410" font-size="12.5" font-weight="700" fill="#6366F1" letter-spacing="0.4">SERVICES MÉTIER</text>
+<rect x="393" y="392" width="162.3" height="26" rx="13" fill="#FFFFFF" stroke="#6366F1" stroke-width="1.2"/>
+<text x="407" y="410" font-size="12.5" font-weight="700" fill="#6366F1" letter-spacing="0.4">BUSINESS SERVICES</text>
 <rect x="375" y="715" width="560" height="260" rx="22" fill="#F7FDFC" stroke="#0F766E" stroke-width="1.6" stroke-dasharray="8 6"/>
 <rect x="393" y="962" width="178.1" height="26" rx="13" fill="#FFFFFF" stroke="#0F766E" stroke-width="1.2"/>
-<text x="407" y="980" font-size="12.5" font-weight="700" fill="#0F766E" letter-spacing="0.4">PERSISTANCE · CACHE</text>
+<text x="407" y="980" font-size="12.5" font-weight="700" fill="#0F766E" letter-spacing="0.4">PERSISTENCE · CACHE</text>
 <rect x="1312" y="395" width="260" height="290" rx="22" fill="#FFFBF7" stroke="#C2410C" stroke-width="1.6" stroke-dasharray="8 6"/>
 <rect x="1330" y="382" width="91.2" height="26" rx="13" fill="#FFFFFF" stroke="#C2410C" stroke-width="1.2"/>
 <text x="1344" y="400" font-size="12.5" font-weight="700" fill="#C2410C" letter-spacing="0.4">INTERNET</text>
@@ -55,24 +55,24 @@
 <circle cx="92" cy="131" r="12" fill="#FFFFFF" fill-opacity="0.95"/>
 <text x="92" y="136" font-size="14" text-anchor="middle" font-weight="700" fill="#374151">⎇</text>
 <text x="112" y="137" font-size="15" font-weight="700" fill="#FFFFFF">config-repo (Git)</text>
-<text x="86" y="166" font-size="12" fill="#475569">application.yml par service</text>
+<text x="86" y="166" font-size="12" fill="#475569">application.yml per service</text>
 <g filter="url(#sh)"><rect x="560" y="108" width="340" height="72" rx="14" fill="#F0FDFA" stroke="#99F6E4" stroke-width="1.5"/></g>
 <path d="M560,122 a14,14 0 0 1 14,-14 h312 a14,14 0 0 1 14,14 v28 h-340 z" fill="url(#h-client)"/>
 <circle cx="582" cy="129" r="12" fill="#FFFFFF" fill-opacity="0.95"/>
 <text x="582" y="134" font-size="14" text-anchor="middle" font-weight="700" fill="#0D9488">◉</text>
-<text x="602" y="135" font-size="15" font-weight="700" fill="#FFFFFF">Client · Agent · Superviseur</text>
-<text x="576" y="166" font-size="12" fill="#475569">Postman · Swagger UI · navigateur</text>
+<text x="602" y="135" font-size="15" font-weight="700" fill="#FFFFFF">Customer · Agent · Supervisor</text>
+<text x="576" y="166" font-size="12" fill="#475569">Postman · Swagger UI · browser</text>
 <g filter="url(#sh)"><rect x="560" y="234" width="340" height="108" rx="14" fill="#EEF2FF" stroke="#C7D2FE" stroke-width="1.5"/></g>
 <path d="M560,248 a14,14 0 0 1 14,-14 h312 a14,14 0 0 1 14,14 v28 h-340 z" fill="url(#h-gateway)"/>
 <circle cx="582" cy="255" r="12" fill="#FFFFFF" fill-opacity="0.95"/>
 <text x="582" y="260" font-size="14" text-anchor="middle" font-weight="700" fill="#4F46E5">⇆</text>
 <text x="602" y="261" font-size="15" font-weight="700" fill="#FFFFFF">api-gateway</text>
 <text x="576" y="298" font-size="12.5" font-weight="600" fill="#0F172A">Spring Cloud Gateway</text>
-<text x="576" y="317" font-size="12.5" font-weight="400" fill="#475569">routage lb:// · rate limiting</text>
+<text x="576" y="317" font-size="12.5" font-weight="400" fill="#475569">lb:// routing · rate limiting</text>
 <rect x="832.0" y="310" width="56.0" height="22" rx="11" fill="#FFFFFF" stroke="#4F46E5" stroke-width="1.2"/>
 <text x="860.0" y="325" font-size="12" font-weight="700" text-anchor="middle" fill="#4F46E5" font-family="'DejaVu Sans Mono', Consolas, monospace">:8080</text>
 <rect x="788" y="246" width="100" height="20" rx="10" fill="#FFFFFF" fill-opacity="0.22"/>
-<text x="838" y="260" font-size="11" font-weight="700" text-anchor="middle" fill="#FFFFFF">seul port exposé</text>
+<text x="838" y="260" font-size="11" font-weight="700" text-anchor="middle" fill="#FFFFFF">only exposed port</text>
 <g filter="url(#sh)"><rect x="85" y="290" width="245" height="118" rx="14" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.5"/></g>
 <path d="M85,304 a14,14 0 0 1 14,-14 h217 a14,14 0 0 1 14,14 v28 h-245 z" fill="url(#h-control)"/>
 <circle cx="107" cy="311" r="12" fill="#FFFFFF" fill-opacity="0.95"/>
@@ -88,7 +88,7 @@
 <text x="107" y="466" font-size="14" text-anchor="middle" font-weight="700" fill="#475569">◎</text>
 <text x="127" y="467" font-size="15" font-weight="700" fill="#FFFFFF">discovery-server</text>
 <text x="101" y="504" font-size="12.5" font-weight="600" fill="#0F172A">Spring Cloud Eureka</text>
-<text x="101" y="523" font-size="12.5" font-weight="400" fill="#475569">enregistrement des services</text>
+<text x="101" y="523" font-size="12.5" font-weight="400" fill="#475569">service registration</text>
 <rect x="262.0" y="526" width="56.0" height="22" rx="11" fill="#FFFFFF" stroke="#475569" stroke-width="1.2"/>
 <text x="290.0" y="541" font-size="12" font-weight="700" text-anchor="middle" fill="#475569" font-family="'DejaVu Sans Mono', Consolas, monospace">:8761</text>
 <g filter="url(#sh)"><rect x="400" y="440" width="330" height="162" rx="14" fill="#F0F9FF" stroke="#BAE6FD" stroke-width="1.5"/></g>
@@ -97,9 +97,9 @@
 <text x="422" y="466" font-size="14" text-anchor="middle" font-weight="700" fill="#0284C7">▤</text>
 <text x="442" y="467" font-size="15" font-weight="700" fill="#FFFFFF">servicio-tickets</text>
 <text x="416" y="504" font-size="12.5" font-weight="600" fill="#0F172A">Spring Boot · Spring Data JPA</text>
-<text x="416" y="523" font-size="12.5" font-weight="400" fill="#475569">machine à états · SLA · escalade</text>
-<text x="416" y="542" font-size="12.5" font-weight="400" fill="#475569">tri par règles (secours)</text>
-<text x="416" y="561" font-size="12.5" font-weight="400" fill="#475569">planificateur</text>
+<text x="416" y="523" font-size="12.5" font-weight="400" fill="#475569">state machine · SLA · escalation</text>
+<text x="416" y="542" font-size="12.5" font-weight="400" fill="#475569">rule-based triage (fallback)</text>
+<text x="416" y="561" font-size="12.5" font-weight="400" fill="#475569">scheduler</text>
 <rect x="662.0" y="570" width="56.0" height="22" rx="11" fill="#FFFFFF" stroke="#0284C7" stroke-width="1.2"/>
 <text x="690.0" y="585" font-size="12" font-weight="700" text-anchor="middle" fill="#0284C7" font-family="'DejaVu Sans Mono', Consolas, monospace">:8081</text>
 <g filter="url(#sh)"><rect x="880" y="440" width="330" height="162" rx="14" fill="#FAF5FF" stroke="#DDD6FE" stroke-width="1.5"/></g>
@@ -108,26 +108,26 @@
 <text x="902" y="466" font-size="14" text-anchor="middle" font-weight="700" fill="#7C3AED">✦</text>
 <text x="922" y="467" font-size="15" font-weight="700" fill="#FFFFFF">servicio-agente-triaje</text>
 <text x="896" y="504" font-size="12.5" font-weight="600" fill="#0F172A">Spring Boot · Spring AI · Resilience4j</text>
-<text x="896" y="523" font-size="12.5" font-weight="400" fill="#475569">agent IA · tool calling</text>
+<text x="896" y="523" font-size="12.5" font-weight="400" fill="#475569">AI agent · tool calling</text>
 <text x="896" y="542" font-size="12.5" font-weight="400" fill="#475569">circuit breaker · retry</text>
-<text x="896" y="561" font-size="12.5" font-weight="400" fill="#475569">sortie JSON validée</text>
+<text x="896" y="561" font-size="12.5" font-weight="400" fill="#475569">validated JSON output</text>
 <rect x="1142.0" y="570" width="56.0" height="22" rx="11" fill="#FFFFFF" stroke="#7C3AED" stroke-width="1.2"/>
 <text x="1170.0" y="585" font-size="12" font-weight="700" text-anchor="middle" fill="#7C3AED" font-family="'DejaVu Sans Mono', Consolas, monospace">:8082</text>
 <g filter="url(#sh)"><path d="M395.0,770 v158 a105.0,16 0 0 0 210,0 v-158" fill="#EFF5FB" stroke="#336791" stroke-width="1.8"/>
 <ellipse cx="500" cy="770" rx="105.0" ry="16" fill="#336791" stroke="#336791" stroke-width="1.8"/></g>
 <ellipse cx="500" cy="770" rx="91.0" ry="10" fill="#FFFFFF" fill-opacity="0.18"/>
 <text x="500" y="814" font-size="16" font-weight="800" text-anchor="middle" fill="#336791">PostgreSQL</text>
-<text x="500" y="838" font-size="12.5" text-anchor="middle" fill="#334155">schéma tickets</text>
-<text x="500" y="857" font-size="12.5" text-anchor="middle" fill="#334155">schéma agente</text>
-<text x="500" y="876" font-size="12.5" text-anchor="middle" fill="#334155">volume pg-data</text>
+<text x="500" y="838" font-size="12.5" text-anchor="middle" fill="#334155">tickets schema</text>
+<text x="500" y="857" font-size="12.5" text-anchor="middle" fill="#334155">agent schema</text>
+<text x="500" y="876" font-size="12.5" text-anchor="middle" fill="#334155">pg-data volume</text>
 <rect x="472.0" y="910" width="56.0" height="22" rx="11" fill="#FFFFFF" stroke="#336791" stroke-width="1.2"/>
 <text x="500" y="925" font-size="12" font-weight="700" text-anchor="middle" fill="#336791" font-family="'DejaVu Sans Mono', Consolas, monospace">:5432</text>
 <g filter="url(#sh)"><path d="M708.0,770 v158 a100.0,16 0 0 0 200,0 v-158" fill="#FEF2F2" stroke="#DC382D" stroke-width="1.8"/>
 <ellipse cx="808" cy="770" rx="100.0" ry="16" fill="#DC382D" stroke="#DC382D" stroke-width="1.8"/></g>
 <ellipse cx="808" cy="770" rx="86.0" ry="10" fill="#FFFFFF" fill-opacity="0.18"/>
 <text x="808" y="814" font-size="16" font-weight="800" text-anchor="middle" fill="#DC382D">Redis</text>
-<text x="808" y="838" font-size="12.5" text-anchor="middle" fill="#334155">stream ticket-events</text>
-<text x="808" y="857" font-size="12.5" text-anchor="middle" fill="#334155">cache des tris</text>
+<text x="808" y="838" font-size="12.5" text-anchor="middle" fill="#334155">ticket-events stream</text>
+<text x="808" y="857" font-size="12.5" text-anchor="middle" fill="#334155">triage cache</text>
 <text x="808" y="876" font-size="12.5" text-anchor="middle" fill="#334155">rate limiting</text>
 <rect x="780.0" y="910" width="56.0" height="22" rx="11" fill="#FFFFFF" stroke="#DC382D" stroke-width="1.2"/>
 <text x="808" y="925" font-size="12" font-weight="700" text-anchor="middle" fill="#DC382D" font-family="'DejaVu Sans Mono', Consolas, monospace">:6379</text>
@@ -136,10 +136,10 @@
 <circle cx="1350" cy="461" r="12" fill="#FFFFFF" fill-opacity="0.95"/>
 <text x="1350" y="466" font-size="14" text-anchor="middle" font-weight="700" fill="#C2410C">✳</text>
 <text x="1370" y="467" font-size="15" font-weight="700" fill="#FFFFFF">API Anthropic</text>
-<text x="1344" y="504" font-size="12.5" font-weight="600" fill="#0F172A">LLM externe (SaaS)</text>
-<text x="1344" y="523" font-size="12.5" font-weight="400" fill="#475569">fournisseur unique</text>
-<text x="1344" y="542" font-size="12.5" font-weight="400" fill="#475569">clé via variable</text>
-<text x="1344" y="561" font-size="12.5" font-weight="400" fill="#475569">d&#x27;environnement</text>
+<text x="1344" y="504" font-size="12.5" font-weight="600" fill="#0F172A">External LLM (SaaS)</text>
+<text x="1344" y="523" font-size="12.5" font-weight="400" fill="#475569">single provider</text>
+<text x="1344" y="542" font-size="12.5" font-weight="400" fill="#475569">key via environment</text>
+<text x="1344" y="561" font-size="12.5" font-weight="400" fill="#475569">variable</text>
 <rect x="1495.6" y="568" width="48.4" height="22" rx="11" fill="#FFFFFF" stroke="#C2410C" stroke-width="1.2"/>
 <text x="1519.8" y="583" font-size="12" font-weight="700" text-anchor="middle" fill="#C2410C" font-family="'DejaVu Sans Mono', Consolas, monospace">:443</text>
 <rect x="563.5" y="194.5" width="153.0" height="23" rx="11" fill="#FFFFFF" stroke="#2563EB" stroke-width="1.2"/>
@@ -151,12 +151,12 @@
 <rect x="720.0" y="366.5" width="160.0" height="23" rx="11" fill="#FFFFFF" stroke="#DC2626" stroke-width="1.2"/>
 <text x="800" y="382.5" font-size="11.5" font-weight="600" text-anchor="middle" fill="#DC2626">RESP · rate limiting</text>
 <rect x="730.0" y="511.0" width="150" height="38" rx="11" fill="#FFFFFF" stroke="#2563EB" stroke-width="1.2"/>
-<text x="805" y="527.0" font-size="11.5" font-weight="600" text-anchor="middle" fill="#2563EB">REST · outils de l&#x27;agent</text>
-<text x="805" y="542.0" font-size="11.5" font-weight="600" text-anchor="middle" fill="#2563EB">+ résultat du tri</text>
+<text x="805" y="527.0" font-size="11.5" font-weight="600" text-anchor="middle" fill="#2563EB">REST · agent tools</text>
+<text x="805" y="542.0" font-size="11.5" font-weight="600" text-anchor="middle" fill="#2563EB">+ triage result</text>
 <rect x="386.5" y="643.5" width="167.0" height="23" rx="11" fill="#FFFFFF" stroke="#059669" stroke-width="1.2"/>
-<text x="470" y="659.5" font-size="11.5" font-weight="600" text-anchor="middle" fill="#059669">JDBC · schéma tickets</text>
-<rect x="566.5" y="676.5" width="111.0" height="23" rx="11" fill="#FFFFFF" stroke="#059669" stroke-width="1.2"/>
-<text x="622" y="692.5" font-size="11.5" font-weight="600" text-anchor="middle" fill="#059669">JDBC · agente</text>
+<text x="470" y="659.5" font-size="11.5" font-weight="600" text-anchor="middle" fill="#059669">JDBC · tickets schema</text>
+<rect x="570.0" y="676.5" width="104.0" height="23" rx="11" fill="#FFFFFF" stroke="#059669" stroke-width="1.2"/>
+<text x="622" y="692.5" font-size="11.5" font-weight="600" text-anchor="middle" fill="#059669">JDBC · agent</text>
 <rect x="617.0" y="638.5" width="146.0" height="23" rx="11" fill="#FFFFFF" stroke="#DB2777" stroke-width="1.2"/>
 <text x="690" y="654.5" font-size="11.5" font-weight="600" text-anchor="middle" fill="#DB2777">XADD ticket.creado</text>
 <rect x="840.0" y="638.5" width="90.0" height="23" rx="11" fill="#FFFFFF" stroke="#DB2777" stroke-width="1.2"/>
@@ -166,22 +166,22 @@
 <rect x="1212.0" y="537.0" width="100" height="38" rx="11" fill="#FFFFFF" stroke="#EA580C" stroke-width="1.2"/>
 <text x="1262" y="553.0" font-size="11.5" font-weight="600" text-anchor="middle" fill="#EA580C">HTTPS</text>
 <text x="1262" y="568.0" font-size="11.5" font-weight="600" text-anchor="middle" fill="#EA580C">Messages API</text>
-<rect x="368.5" y="258.5" width="153.0" height="23" rx="11" fill="#FFFFFF" stroke="#64748B" stroke-width="1.2"/>
-<text x="445" y="274.5" font-size="11.5" font-weight="600" text-anchor="middle" fill="#64748B">config au démarrage</text>
+<rect x="375.5" y="258.5" width="139.0" height="23" rx="11" fill="#FFFFFF" stroke="#64748B" stroke-width="1.2"/>
+<text x="445" y="274.5" font-size="11.5" font-weight="600" text-anchor="middle" fill="#64748B">config at startup</text>
 <rect x="234.0" y="218.5" width="132.0" height="23" rx="11" fill="#FFFFFF" stroke="#64748B" stroke-width="1.2"/>
 <text x="300" y="234.5" font-size="11.5" font-weight="600" text-anchor="middle" fill="#64748B">HTTPS · git pull</text>
 <rect x="40" y="1020" width="1520" height="82" rx="16" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.2"/>
-<text x="62" y="1048" font-size="13" font-weight="800" fill="#0F172A" letter-spacing="0.4">LÉGENDE</text>
+<text x="62" y="1048" font-size="13" font-weight="800" fill="#0F172A" letter-spacing="0.4">LEGEND</text>
 <path d="M170,1046 H222" stroke="#2563EB" stroke-width="2.6" marker-end="url(#m-rest)"/>
-<text x="236" y="1050" font-size="13" fill="#334155">HTTP · REST / JSON (synchrone)</text>
+<text x="236" y="1050" font-size="13" fill="#334155">HTTP · REST / JSON (synchronous)</text>
 <path d="M640,1046 H692" stroke="#DB2777" stroke-width="2.6" stroke-dasharray="9 6" marker-end="url(#m-async)"/>
-<text x="706" y="1050" font-size="13" fill="#334155">Événement asynchrone · Redis Streams</text>
+<text x="706" y="1050" font-size="13" fill="#334155">Asynchronous event · Redis Streams</text>
 <path d="M1110,1046 H1162" stroke="#059669" stroke-width="2.6" marker-end="url(#m-jdbc)"/>
 <text x="1176" y="1050" font-size="13" fill="#334155">JDBC · SQL</text>
 <path d="M170,1076 H222" stroke="#EA580C" stroke-width="2.6" marker-end="url(#m-llm)"/>
-<text x="236" y="1080" font-size="13" fill="#334155">Inférence LLM · API Anthropic</text>
+<text x="236" y="1080" font-size="13" fill="#334155">LLM inference · Anthropic API</text>
 <path d="M640,1076 H692" stroke="#DC2626" stroke-width="2.6" stroke-dasharray="3 5" marker-end="url(#m-resp)"/>
 <text x="706" y="1080" font-size="13" fill="#334155">RESP · cache / rate limiting</text>
 <path d="M1110,1076 H1162" stroke="#64748B" stroke-width="2.6" stroke-dasharray="2 6" marker-end="url(#m-control)"/>
-<text x="1176" y="1080" font-size="13" fill="#334155">Plan de contrôle · config, découverte</text>
-<metadata><c2pa:manifest>AAAWgmp1bWIAAAAeanVtZGMycGEAEQAQgAAAqgA4m3EDYzJwYQAAABZcanVtYgAAAEdqdW1kYzJtYQARABCAAACqADibcQN1cm46YzJwYToyNmY0MjhiMy1hMzFhLTRmN2MtOWM4Zi1kYmZkMzIzNzQ0ZmYAAAADl2p1bWIAAAApanVtZGMyYXMAEQAQgAAAqgA4m3EDYzJwYS5hc3NlcnRpb25zAAAAALxqdW1iAAAARGp1bWRjYm9yABEAEIAAAKoAOJtxE2MycGEuaW5ncmVkaWVudC52MwAAAAAYYzJzaJrrevtyTRBpMYusqdOGm9YAAABwY2JvcqNpZGM6Zm9ybWF0bWltYWdlL3N2Zyt4bWxqaW5zdGFuY2VJRHgseG1wOmlpZDpjNjNmYjI0Yy0zMDliLTQ3YjktOTJiNC0xZTJlOTcxYzI2MzNscmVsYXRpb25zaGlwaHBhcmVudE9mAAAB4mp1bWIAAABBanVtZGNib3IAEQAQgAAAqgA4m3ETYzJwYS5hY3Rpb25zLnYyAAAAABhjMnNoFbck2mK1Gm3HbqKIsZvtAgAAAZljYm9yomdhY3Rpb25zgqJmYWN0aW9ua2MycGEub3BlbmVkanBhcmFtZXRlcnOha2luZ3JlZGllbnRzgaJjdXJseC1zZWxmI2p1bWJmPWMycGEuYXNzZXJ0aW9ucy9jMnBhLmluZ3JlZGllbnQudjNkaGFzaFggVGYdSWbNi5vzte3vdx1C6vWGUeN5bq6rjcq/M4tZ/eKkZmFjdGlvbngdY29tLmFudGhyb3BpYy5jbGF1ZGUucHJvdmlkZWRqcGFyYW1ldGVyc6F4H2NvbS5hbnRocm9waWMub3JpZ2luLWNvbmZpZGVuY2VndW5rbm93bmtkZXNjcmlwdGlvbnhmQ2xhdWRlIHByb3ZpZGVkIHRoaXMgZmlsZSBhdCB0aGUgcmVxdWVzdCBvZiBhIHVzZXIgYW5kIG1heSBoYXZlIGNyZWF0ZWQgb3IgbW9kaWZpZWQgdGhlIGZpbGUgY29udGVudHMubXNvZnR3YXJlQWdlbnShZG5hbWVmQ2xhdWRlcmFsbEFjdGlvbnNJbmNsdWRlZPUAAADIanVtYgAAAEBqdW1kY2JvcgARABCAAACqADibcRNjMnBhLmhhc2guZGF0YQAAAAAYYzJzaNeRQ5YwZ/9oZpeCgm161/IAAACAY2JvcqVjYWxnZnNoYTI1NmNwYWRMAAAAAAAAAAAAAAAAZGhhc2hYIIn7/Wki9/i4gpDipvYk4f+cnpnjqgKqb43PJjsd/mS4ZG5hbWVuanVtYmYgbWFuaWZlc3RqZXhjbHVzaW9uc4GiZXN0YXJ0GVZTZmxlbmd0aBkeBAAAAj5qdW1iAAAAJ2p1bWRjMmNsABEAEIAAAKoAOJtxA2MycGEuY2xhaW0udjIAAAACD2Nib3KlY2FsZ2ZzaGEyNTZpc2lnbmF0dXJleE1zZWxmI2p1bWJmPS9jMnBhL3VybjpjMnBhOjI2ZjQyOGIzLWEzMWEtNGY3Yy05YzhmLWRiZmQzMjM3NDRmZi9jMnBhLnNpZ25hdHVyZWppbnN0YW5jZUlEeCx4bXA6aWlkOjgzNDA1ZDlhLTg1NTMtNDk5ZS05NGRiLTU3YWUwMjRjYWZhOXJjcmVhdGVkX2Fzc2VydGlvbnODomN1cmx4LXNlbGYjanVtYmY9YzJwYS5hc3NlcnRpb25zL2MycGEuaW5ncmVkaWVudC52M2RoYXNoWCBUZh1JZs2Lm/O17e93HULq9YZR43lurquNyr8zi1n94qJjdXJseCpzZWxmI2p1bWJmPWMycGEuYXNzZXJ0aW9ucy9jMnBhLmFjdGlvbnMudjJkaGFzaFggTouUFCMrxOKh46JyRhAC66PGwiNQEZ1ZLudQcLGIXJOiY3VybHgpc2VsZiNqdW1iZj1jMnBhLmFzc2VydGlvbnMvYzJwYS5oYXNoLmRhdGFkaGFzaFggLduvA+HvJUV086jzZufy/nKPJOKvV9oQaO6eAf8UKi90Y2xhaW1fZ2VuZXJhdG9yX2luZm+jZG5hbWVvQW50aHJvcGljIEZpbGVzZ3ZlcnNpb25lMS4wLjBrc3BlY1ZlcnNpb25lMi40LjAAABA4anVtYgAAAChqdW1kYzJjcwARABCAAACqADibcQNjMnBhLnNpZ25hdHVyZQAAABAIY2JvctKEWQISogEmGCFZAgowggIGMIIBjaADAgECAhRA5aAK7sI50L64g/oGQgU9Z1UTADAKBggqhkjOPQQDAzBJMRcwFQYDVQQKEw5BbnRocm9waWMsIFBCQzEuMCwGA1UEAxMlQW50aHJvcGljIENvbnRlbnQgQ3JlZGVudGlhbHMgUm9vdCBDQTAeFw0yNjA4MDcxODQzNTZaFw0yODA4MDYxOTQzNTZaMEQxFzAVBgNVBAoTDkFudGhyb3BpYywgUEJDMSkwJwYDVQQDEyBBbnRocm9waWMgQ2xhdWRlIENvbnRlbnQgU2lnbmluZzBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABJh6CmvLUBgFFNU0vUKlOVtE6djd17L5SuwX0LemFisBM3dkd/3cyjxFA3Qo5S46fX0/ihY0VZ7mfb9KF703t5OjWDBWMA4GA1UdDwEB/wQEAwIHgDAVBgNVHSUEDjAMBgorBgEEAYPoXgIBMAwGA1UdEwEB/wQCMAAwHwYDVR0jBBgwFoAUzlHiBIFOZFsj+OPEz5o+nMHXXMIwCgYIKoZIzj0EAwMDZwAwZAIwMXMdFJ4BetLLVY7ORuE9noqbbAZOZn/aArXyTwFAZfKrPzxF2vPoJNf1+UCdg1XGAjBwX1zd9WGqYkqmL5SFqw1QySjr1zJfpJM9+1rdDwSPLMOPOjKuiXjoU/pUUeG9RwmhY3BhZFkNngAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPZYQNO7/fYMcwnqGxhc9erCpXCs87zA80MOo1N/EKmlBlBj7ZTB/5x2iP1HIwlHkc/MKZHs1vmiu3z5LgD/SHCPd50=</c2pa:manifest></metadata></svg>
+<text x="1176" y="1080" font-size="13" fill="#334155">Control plane · config, discovery</text>
+<metadata><c2pa:manifest>AAAWgmp1bWIAAAAeanVtZGMycGEAEQAQgAAAqgA4m3EDYzJwYQAAABZcanVtYgAAAEdqdW1kYzJtYQARABCAAACqADibcQN1cm46YzJwYTpjMjM4YWVhNC0zNjY5LTQ2OTEtOGMwMS1mZTMzNWFhM2NlOTgAAAADl2p1bWIAAAApanVtZGMyYXMAEQAQgAAAqgA4m3EDYzJwYS5hc3NlcnRpb25zAAAAALxqdW1iAAAARGp1bWRjYm9yABEAEIAAAKoAOJtxE2MycGEuaW5ncmVkaWVudC52MwAAAAAYYzJzaB8O9JVkhq/ALSb9ggi13csAAABwY2JvcqNpZGM6Zm9ybWF0bWltYWdlL3N2Zyt4bWxqaW5zdGFuY2VJRHgseG1wOmlpZDo0ODJiNWE2ZC1kYzdjLTRjODgtOTViOS01N2VmMmY0MzU2M2VscmVsYXRpb25zaGlwaHBhcmVudE9mAAAB4mp1bWIAAABBanVtZGNib3IAEQAQgAAAqgA4m3ETYzJwYS5hY3Rpb25zLnYyAAAAABhjMnNoAoS4smDn2Npt98rgYWeiSgAAAZljYm9yomdhY3Rpb25zgqJmYWN0aW9ua2MycGEub3BlbmVkanBhcmFtZXRlcnOha2luZ3JlZGllbnRzgaJjdXJseC1zZWxmI2p1bWJmPWMycGEuYXNzZXJ0aW9ucy9jMnBhLmluZ3JlZGllbnQudjNkaGFzaFggprU92O443Pa1VpX6m65oTfy51fM0OomneIpCOHXMm2ikZmFjdGlvbngdY29tLmFudGhyb3BpYy5jbGF1ZGUucHJvdmlkZWRqcGFyYW1ldGVyc6F4H2NvbS5hbnRocm9waWMub3JpZ2luLWNvbmZpZGVuY2VndW5rbm93bmtkZXNjcmlwdGlvbnhmQ2xhdWRlIHByb3ZpZGVkIHRoaXMgZmlsZSBhdCB0aGUgcmVxdWVzdCBvZiBhIHVzZXIgYW5kIG1heSBoYXZlIGNyZWF0ZWQgb3IgbW9kaWZpZWQgdGhlIGZpbGUgY29udGVudHMubXNvZnR3YXJlQWdlbnShZG5hbWVmQ2xhdWRlcmFsbEFjdGlvbnNJbmNsdWRlZPUAAADIanVtYgAAAEBqdW1kY2JvcgARABCAAACqADibcRNjMnBhLmhhc2guZGF0YQAAAAAYYzJzaAdvZWYHHrTM/OKk4wHh+1sAAACAY2JvcqVjYWxnZnNoYTI1NmNwYWRMAAAAAAAAAAAAAAAAZGhhc2hYII2y6n9yXZCOqlVKs4hPBrZwqDKwn6Y7yIK0G/aM0cQeZG5hbWVuanVtYmYgbWFuaWZlc3RqZXhjbHVzaW9uc4GiZXN0YXJ0GVYFZmxlbmd0aBkeBAAAAj5qdW1iAAAAJ2p1bWRjMmNsABEAEIAAAKoAOJtxA2MycGEuY2xhaW0udjIAAAACD2Nib3KlY2FsZ2ZzaGEyNTZpc2lnbmF0dXJleE1zZWxmI2p1bWJmPS9jMnBhL3VybjpjMnBhOmMyMzhhZWE0LTM2NjktNDY5MS04YzAxLWZlMzM1YWEzY2U5OC9jMnBhLnNpZ25hdHVyZWppbnN0YW5jZUlEeCx4bXA6aWlkOmQ4YjUxM2MyLWE2YjQtNDgwMy05ODFjLWJmZjk4M2QwY2JkM3JjcmVhdGVkX2Fzc2VydGlvbnODomN1cmx4LXNlbGYjanVtYmY9YzJwYS5hc3NlcnRpb25zL2MycGEuaW5ncmVkaWVudC52M2RoYXNoWCCmtT3Y7jjc9rVWlfqbrmhN/LnV8zQ6iad4ikI4dcybaKJjdXJseCpzZWxmI2p1bWJmPWMycGEuYXNzZXJ0aW9ucy9jMnBhLmFjdGlvbnMudjJkaGFzaFgg47EffpDvAy9u3W37EXeM4zduaXuja4yCYXzLnUXW+XCiY3VybHgpc2VsZiNqdW1iZj1jMnBhLmFzc2VydGlvbnMvYzJwYS5oYXNoLmRhdGFkaGFzaFgg0rhq19hEM5P+AnSt9w4eKRD8SigJKIFDiCBKUDmUv+N0Y2xhaW1fZ2VuZXJhdG9yX2luZm+jZG5hbWVvQW50aHJvcGljIEZpbGVzZ3ZlcnNpb25lMS4wLjBrc3BlY1ZlcnNpb25lMi40LjAAABA4anVtYgAAAChqdW1kYzJjcwARABCAAACqADibcQNjMnBhLnNpZ25hdHVyZQAAABAIY2JvctKEWQISogEmGCFZAgowggIGMIIBjaADAgECAhRA5aAK7sI50L64g/oGQgU9Z1UTADAKBggqhkjOPQQDAzBJMRcwFQYDVQQKEw5BbnRocm9waWMsIFBCQzEuMCwGA1UEAxMlQW50aHJvcGljIENvbnRlbnQgQ3JlZGVudGlhbHMgUm9vdCBDQTAeFw0yNjA4MDcxODQzNTZaFw0yODA4MDYxOTQzNTZaMEQxFzAVBgNVBAoTDkFudGhyb3BpYywgUEJDMSkwJwYDVQQDEyBBbnRocm9waWMgQ2xhdWRlIENvbnRlbnQgU2lnbmluZzBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABJh6CmvLUBgFFNU0vUKlOVtE6djd17L5SuwX0LemFisBM3dkd/3cyjxFA3Qo5S46fX0/ihY0VZ7mfb9KF703t5OjWDBWMA4GA1UdDwEB/wQEAwIHgDAVBgNVHSUEDjAMBgorBgEEAYPoXgIBMAwGA1UdEwEB/wQCMAAwHwYDVR0jBBgwFoAUzlHiBIFOZFsj+OPEz5o+nMHXXMIwCgYIKoZIzj0EAwMDZwAwZAIwMXMdFJ4BetLLVY7ORuE9noqbbAZOZn/aArXyTwFAZfKrPzxF2vPoJNf1+UCdg1XGAjBwX1zd9WGqYkqmL5SFqw1QySjr1zJfpJM9+1rdDwSPLMOPOjKuiXjoU/pUUeG9RwmhY3BhZFkNngAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPZYQGX7B7FiRgm+RNcaEjaUhZ99ziG4tS3PaA4JMeW73bgHPvveP5Ox8V+NMC7U/NXBmCtm4F+8dffdnhaY9qlX4qA=</c2pa:manifest></metadata></svg>
