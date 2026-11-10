@@ -1,0 +1,64 @@
+# ============================================================
+#  servicio-agente-triaje — AI agent, tool calling, resilience
+# ============================================================
+
+llm:
+  proveedor: anthropic
+  modelo: ${LLM_MODELO:claude-sonnet-5-5}
+  timeout-segundos: 60
+  umbral-confianza: 0.7             # RN-04
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:triageai}
+    username: ${POSTGRES_USER:triageai}
+    password: ${POSTGRES_PASSWORD:triageai}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        default_schema: agente
+        create_namespaces: true
+  ai:
+    anthropic:
+      api-key: ${ANTHROPIC_API_KEY:}
+      chat:
+        options:
+          model: ${llm.modelo}
+          max-tokens: 1024
+          temperature: 0.0
+
+agente:
+  consumidor:
+    grupo: agente-triaje
+  # HU-08 — automatic retry of tickets left in PENDIENTE_TRIAJE
+  reintento:
+    max-intentos: 5
+    frecuencia-ms: 300000
+  cache:
+    ttl: PT1H
+
+# RN-06 — bounded retry + circuit breaker around the Anthropic call
+resilience4j:
+  circuitbreaker:
+    instances:
+      anthropic:
+        sliding-window-size: 10
+        minimum-number-of-calls: 4
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 60s
+        permitted-number-of-calls-in-half-open-state: 2
+        automatic-transition-from-open-to-half-open-enabled: true
+  retry:
+    instances:
+      anthropic:
+        max-attempts: 3
+        wait-duration: 2s
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+  timelimiter:
+    instances:
+      anthropic:
+        timeout-duration: ${llm.timeout-segundos}s

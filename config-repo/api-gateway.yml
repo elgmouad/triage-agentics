@@ -1,0 +1,9 @@
+# ============================================================
+#  api-gateway — single entry point, routing, rate limiting
+# ============================================================
+
+gateway:
+  # Per-client token bucket stored in Redis
+  rate-limit:
+    replenish-rate: 10   # requests per second
+    burst-capacity: 20

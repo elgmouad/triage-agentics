@@ -1,0 +1,35 @@
+# ============================================================
+#  servicio-tickets — lifecycle, SLA, escalation, rule-based triage
+# ============================================================
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:triageai}
+    username: ${POSTGRES_USER:triageai}
+    password: ${POSTGRES_PASSWORD:triageai}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        default_schema: tickets
+        create_namespaces: true
+
+tickets:
+  # RN-02 — SLA deadlines by priority (ISO-8601 durations)
+  sla:
+    CRITICA: { primera-respuesta: PT1H,  resolucion: PT8H }
+    ALTA:    { primera-respuesta: PT4H,  resolucion: PT24H }
+    MEDIA:   { primera-respuesta: PT24H, resolucion: P3D }
+    BAJA:    { primera-respuesta: PT72H, resolucion: P7D }
+  # RN-03 — escalate at 80% of the deadline
+  escalado:
+    umbral: 0.8
+    frecuencia-ms: 60000
+  # RN-01 — RESUELTO -> CERRADO after 7 days without reopening
+  cierre-automatico:
+    dias: 7
+    frecuencia-ms: 3600000
+  # RN-04 — below this confidence the ticket needs manual review
+  umbral-confianza: 0.7

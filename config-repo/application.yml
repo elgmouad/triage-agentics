@@ -1,0 +1,35 @@
+# ============================================================
+#  Shared configuration — applied to every client service
+#  Values in ${...} are resolved by each service from its own
+#  environment (compose.yaml / .env); defaults target localhost.
+# ============================================================
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
+  instance:
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 30   # heartbeat (README §6.3)
+
+spring:
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+
+triageai:
+  eventos:
+    stream: ticket-events
