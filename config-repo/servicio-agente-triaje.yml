@@ -13,14 +13,6 @@ spring:
     url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:triageai}
     username: ${POSTGRES_USER:triageai}
     password: ${POSTGRES_PASSWORD:triageai}
-  jpa:
-    open-in-view: false
-    hibernate:
-      ddl-auto: update
-    properties:
-      hibernate:
-        default_schema: agente
-        create_namespaces: true
   ai:
     anthropic:
       api-key: ${ANTHROPIC_API_KEY:}
@@ -32,7 +24,7 @@ spring:
 
 agente:
   consumidor:
-    grupo: agente-triaje
+    grupo: triaje                   # consumer group (README section 7.3)
   # HU-08 — automatic retry of tickets left in PENDIENTE_TRIAJE
   reintento:
     max-intentos: 5

@@ -1,0 +1,31 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: servicio-tickets
+  # Business configuration comes from config-server (config-repo/servicio-tickets.yml).
+  # In Docker, CONFIG_FAIL_FAST=true makes the service refuse to start without it.
+  config:
+    import: optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}
+  cloud:
+    config:
+      fail-fast: ${CONFIG_FAIL_FAST:false}
+  # The schema is owned by Flyway migrations (db/migration); Hibernate only validates it.
+  flyway:
+    schemas: tickets
+    default-schema: tickets
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: tickets
+  mvc:
+    problemdetails:
+      enabled: true
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html

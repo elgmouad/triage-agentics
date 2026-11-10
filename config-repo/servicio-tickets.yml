@@ -7,14 +7,8 @@ spring:
     url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:triageai}
     username: ${POSTGRES_USER:triageai}
     password: ${POSTGRES_PASSWORD:triageai}
-  jpa:
-    open-in-view: false
-    hibernate:
-      ddl-auto: update
-    properties:
-      hibernate:
-        default_schema: tickets
-        create_namespaces: true
+  # Schema (tickets) and JPA settings live in the service itself: they are
+  # tied to its Flyway migrations, not to the environment.
 
 tickets:
   # RN-02 — SLA deadlines by priority (ISO-8601 durations)
