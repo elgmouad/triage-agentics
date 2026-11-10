@@ -826,12 +826,27 @@ All 16 stories are tracked on a single GitHub Projects board, **"TriageAI — Ba
 
 `scripts/crear-backlog.sh` uses the **GitHub CLI** (`gh`) to set this up in one idempotent run (safe to re-execute: it skips anything that already exists): it creates the labels, the five Milestones, the Projects board, and then opens one Issue per file in `docs/backlog/`, attaching it to the board. It requires `gh auth login` plus `gh auth refresh -s project` (the `project` scope is needed to write to GitHub Projects) and is run once from the repository root with `bash scripts/crear-backlog.sh`.
 
-## 9. État du projet
+## 9. Project status
 
-| Hito | Contenu | État |
+| Hito | Scope | Status |
 |---|---|---|
-| Hito 1 | Définition, modèle métier, architecture de référence | 🟡 En cours |
-| Hito 2 | Empaquetage cloud native, environnement local, CI | ⚪ |
-| Hito 3 | Provisionnement IaC, Reconciler Pattern | ⚪ |
-| Hito 4 | Déploiement continu, réconciliation, sécurité | ⚪ |
-| Hito 5 | Observabilité, tests de charge, release finale | ⚪ |
+| Hito 1 | Domain definition, business model, reference architecture | 🟢 Done |
+| Hito 2 | Cloud-native packaging, local environment, continuous integration | ⚪ Not started |
+| Hito 3 | Infrastructure as Code provisioning, Reconciler Pattern | ⚪ Not started |
+| Hito 4 | Continuous deployment, automated reconciliation, security | ⚪ Not started |
+| Hito 5 | Observability, load testing, final release | ⚪ Not started |
+
+### Hito 1 deliverables
+
+| Deliverable | Status |
+|---|---|
+| Domain description, business rules, use cases (sections 1-3) | ✅ |
+| NIST SP 800-145 justification (section 4) | ✅ |
+| NIST SP 500-292 actor mapping (section 5) | ✅ |
+| Architecture: component, sequence and actor diagrams + REST API spec (sections 6-7) | ✅ |
+| `.gitignore`, `.gitattributes`, `.env.example` | ✅ |
+| Issue and Pull Request templates (`.github/`) | ✅ |
+| Backlog: 16 user stories filed as GitHub Issues, linked to use cases CU-01–CU-10 | ✅ |
+| Labels and 5 Milestones (Hito 1–5) | ✅ |
+| GitHub Projects board, grouped by Milestone, public | ✅ |
+| Project management section (section 8) | ✅ |
