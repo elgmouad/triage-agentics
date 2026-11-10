@@ -1,0 +1,38 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: servicio-agente-triaje
+  # Business configuration comes from config-server (config-repo/servicio-agente-triaje.yml).
+  config:
+    import: optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}
+  cloud:
+    config:
+      fail-fast: ${CONFIG_FAIL_FAST:false}
+  flyway:
+    schemas: agente
+    default-schema: agente
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: agente
+  mvc:
+    problemdetails:
+      enabled: true
+
+agente:
+  # Base URL of servicio-tickets, resolved through Eureka (lb://)
+  tickets-url: http://servicio-tickets
+  consumidor:
+    stream: ${triageai.eventos.stream:ticket-events}
+    # Stable per instance so pending events are recovered after a restart
+    nombre: ${HOSTNAME:agente-local}
+
+management:
+  health:
+    circuitbreakers:
+      enabled: true

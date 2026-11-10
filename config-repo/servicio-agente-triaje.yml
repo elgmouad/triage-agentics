@@ -4,9 +4,13 @@
 
 llm:
   proveedor: anthropic
-  modelo: ${LLM_MODELO:claude-sonnet-5-5}
+  modelo: ${LLM_MODELO:claude-opus-5-5}
   timeout-segundos: 60
-  umbral-confianza: 0.7             # RN-04
+  umbral-confianza: 0.7             # RN-04 (applied by servicio-tickets)
+  # Triage is a classification task: low effort keeps cost and latency down.
+  esfuerzo: low
+  # Thinking is always on with current models: leave room for it.
+  max-tokens: 16000
 
 spring:
   datasource:
@@ -15,12 +19,12 @@ spring:
     password: ${POSTGRES_PASSWORD:triageai}
   ai:
     anthropic:
-      api-key: ${ANTHROPIC_API_KEY:}
-      chat:
-        options:
-          model: ${llm.modelo}
-          max-tokens: 1024
-          temperature: 0.0
+      # Without a key the service still starts: calls fail with 401, the
+      # circuit opens and tickets get the rule-based triage (RN-06).
+      api-key: ${ANTHROPIC_API_KEY:not-configured}
+      timeout: ${llm.timeout-segundos}s
+      # Retries are owned by Resilience4j below, not by the SDK.
+      max-retries: 0
 
 agente:
   consumidor:
@@ -29,6 +33,7 @@ agente:
   reintento:
     max-intentos: 5
     frecuencia-ms: 300000
+  # Same text within this window reuses the previous triage (e.g. mass outage)
   cache:
     ttl: PT1H
 
@@ -50,7 +55,3 @@ resilience4j:
         wait-duration: 2s
         enable-exponential-backoff: true
         exponential-backoff-multiplier: 2
-  timelimiter:
-    instances:
-      anthropic:
-        timeout-duration: ${llm.timeout-segundos}s
