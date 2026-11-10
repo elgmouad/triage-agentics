@@ -44,8 +44,8 @@ Les équipes de support technique des PME reçoivent chaque jour un grand volume
 **Principes clés :**
 
 - **Human-in-the-loop** : l'IA n'envoie jamais de réponse seule au client ; un agent humain valide toujours la proposition.
-- **Résilience multi-fournisseur** : le système bascule automatiquement entre deux fournisseurs de LLM (**Ollama** en conteneur local ↔ **API Anthropic**), protégés par un *circuit breaker*.
-- **Dégradation contrôlée** : si les deux fournisseurs sont indisponibles, un tri par **règles simples** est appliqué et le tri IA est relancé plus tard. Aucun ticket n'est jamais perdu.
+- **Résilience face à l'IA externe** : l'agent appelle l'**API Anthropic**, protégée par un *circuit breaker* (timeouts, erreurs, limites de débit).
+- **Dégradation contrôlée** : si l'API Anthropic est indisponible, un tri par **règles simples** est appliqué et le tri IA est relancé plus tard. Aucun ticket n'est jamais perdu.
 
 ### 1.3 Acteurs
 
@@ -104,12 +104,12 @@ L'IA renvoie un niveau de confiance entre 0 et 1. En dessous de **0,7**, le tick
 
 Un brouillon de réponse généré par l'IA ne peut jamais être envoyé au client sans validation d'un agent de support.
 
-### RN-06 — Basculement et dégradation contrôlée
+### RN-06 — Résilience et dégradation contrôlée
 
-1. Appel au fournisseur **primaire** (configurable, par défaut Ollama en local).
-2. En cas d'échec (timeout, erreur de connexion, HTTP 401/403/429/5xx, JSON invalide) → fournisseur **secondaire** (Anthropic).
-3. Un **circuit breaker** (états `CLOSED` / `OPEN` / `HALF_OPEN`) évite d'appeler un fournisseur déjà en panne.
-4. Si les deux échouent → **tri par règles** (mots-clés), état `EN_ATTENTE_DE_TRI`, nouvel essai planifié.
+1. Appel à l'**API Anthropic** (via Spring AI).
+2. En cas d'échec (timeout, erreur de connexion, HTTP 401/403/429/5xx, JSON invalide) → nouvel essai selon la politique de `Resilience4j` (retry borné).
+3. Un **circuit breaker** (états `CLOSED` / `OPEN` / `HALF_OPEN`) évite de marteler l'API quand elle est déjà en panne ou en limite de débit.
+4. Si l'appel échoue malgré tout (circuit `OPEN` ou échecs répétés) → **tri par règles** (mots-clés), état `EN_ATTENTE_DE_TRI`, nouvel essai planifié.
 
 ### RN-07 — Traçabilité de l'IA
 
@@ -203,7 +203,7 @@ Le NIST définit le cloud computing par **5 caractéristiques essentielles**. Ce
 - **Services sans état :** `servicio-tickets` et `servicio-agente-triaje` ne gardent aucune donnée en mémoire ; on peut donc lancer 1, 3 ou 10 répliques selon la charge.
 - **File d'événements :** lors d'un pic, les tickets sont enregistrés immédiatement et les événements `ticket.creado` s'accumulent dans Redis Streams. Les répliques de l'agent IA, membres du même groupe de consommateurs, se **partagent le travail** automatiquement.
 - **Indicateur d'élasticité :** la longueur de la file `ticket-events` est une métrique naturelle pour déclencher l'ajout ou la suppression de répliques.
-- **Élasticité de l'IA :** si le fournisseur local (Ollama) est saturé, le circuit breaker bascule vers l'API Anthropic, qui absorbe la charge supplémentaire.
+- **Élasticité de l'IA :** l'API Anthropic est elle-même un service managé et élastique côté fournisseur ; le cache Redis et le rate limiting évitent de payer deux fois un tri identique lors d'un pic (ex. panne massive signalée par de nombreux clients).
 
 **Illustration (hypothèses chiffrées à titre d'exemple) :** une charge normale demande 1 réplique de l'agent IA et un pic en demande 10 pendant 5 % du temps.
 
@@ -222,8 +222,8 @@ Dans cet exemple, l'élasticité réduit la capacité payée d'environ **85 %**.
 
 - **Mesure de l'IA (RN-07) :** chaque appel LLM enregistre le fournisseur, le modèle, les tokens d'entrée et de sortie, la latence et le résultat (table `llamada_llm`). Le **coût de chaque ticket trié** est donc calculable.
 - **Mesure de l'infrastructure :** chaque service expose ses métriques (Spring Boot Actuator, Micrometer) : requêtes, erreurs, temps de réponse, consommation mémoire.
-- **Contrôle :** le rate limiting du gateway et le choix du fournisseur LLM (local gratuit en priorité) limitent la consommation.
-- **Rapport :** l'endpoint `GET /api/v1/triaje/metricas` (CU-08) fournit la consommation par fournisseur et par période. Il servira de base à une **facturation par ticket** des entreprises clientes.
+- **Contrôle :** le rate limiting du gateway et le cache Redis des tris limitent le nombre d'appels payants à l'API.
+- **Rapport :** l'endpoint `GET /api/v1/triaje/metricas` (CU-08) fournit la consommation (tokens, latence, taux d'échec) par période. Il servira de base à une **facturation par ticket** des entreprises clientes.
 
 ### 4.7 Modèles de service et de déploiement
 
@@ -234,7 +234,7 @@ Le NIST SP 800-145 définit aussi des modèles de service et de déploiement. Tr
 | TriageAI vu par les entreprises clientes | **SaaS** (*Software as a Service*) : application complète consommée via l'API |
 | Ce que TriageAI consomme pour s'exécuter | **IaaS / PaaS** d'un fournisseur cloud public (à choisir au Hito 3) |
 | Ce que TriageAI consomme pour l'IA | **SaaS / API** : modèle de langage d'Anthropic, facturé à l'usage |
-| Modèle de déploiement | **Cloud public**, avec exécution locale possible du LLM (Ollama) |
+| Modèle de déploiement | **Cloud public** |
 
 ---
 
@@ -259,15 +259,15 @@ flowchart LR
         ANT["Anthropic<br/>API LLM"]
     end
 
-    BRK["Intermédiaire (Intermediario)<br/>LlmRouter : arbitrage<br/>Ollama / Anthropic"]
+    BRK["Intermédiaire (Intermediario)<br/>TriageAI : agrège IaaS + API LLM<br/>en un seul service pour la PME"]
     AUD["Auditeur (Auditor)<br/>RGPD · sécurité · SLA"]
     CAR["Opérateur réseau (Operador)<br/>FAI · réseau du fournisseur · Internet"]
 
     CLI --> PME
-    PME -- "consomme le SaaS" --> TAI
+    PME -- "consomme le SaaS" --> BRK
+    BRK --> TAI
     TAI -- "s'exécute sur" --> IAAS
-    TAI --> BRK
-    BRK -- "arbitre entre" --> ANT
+    TAI -- "appelle" --> ANT
     AUD -. "audite" .-> TAI
     CAR -. "transporte" .-> PME
     CAR -. "transporte" .-> ANT
@@ -279,8 +279,8 @@ flowchart LR
 |---|---|---|---|
 | **Consommateur** (*Cloud Consumer* / *Consumidor*) | ① Les **entreprises clientes** (PME) et leurs agents de support, qui consomment TriageAI en SaaS. ② **L'équipe TriageAI**, qui consomme de l'IaaS/PaaS et l'API Anthropic | Utiliser l'API, valider les tris, suivre les SLA ; pour l'équipe TriageAI : déployer et payer les ressources consommées | Les PME passent d'un **coût fixe** (agents qui trient à la main) à un **coût variable** par ticket ; l'équipe TriageAI n'a **aucun investissement matériel** (CapEx → OpEx) |
 | **Fournisseur** (*Cloud Provider* / *Proveedor*) | ① **TriageAI** (fournisseur SaaS). ② Le **fournisseur cloud public** (IaaS/PaaS, choisi au Hito 3). ③ **Anthropic** (API LLM) | TriageAI : déploiement, orchestration, gestion du service, sécurité et confidentialité des données de tickets. Fournisseur cloud : calcul, stockage, réseau. Anthropic : inférence du modèle | TriageAI se rémunère **par ticket traité** ou par abonnement ; ses coûts sont l'infrastructure + les tokens. Le fournisseur cloud et Anthropic facturent **à l'usage** (heures de calcul, tokens) |
-| **Intermédiaire** (*Cloud Broker* / *Intermediario*) | Le composant **`LlmRouter`** de `servicio-agente-triaje` remplit les fonctions d'un broker entre fournisseurs LLM. Un broker externe (place de marché, agrégateur d'API LLM) pourrait aussi jouer ce rôle | **Intermédiation** : interface unique (Spring AI) quel que soit le fournisseur. **Arbitrage** : choix dynamique Ollama ↔ Anthropic selon disponibilité et coût (circuit breaker, ordre configurable). **Agrégation** : un seul service de tri bâti sur plusieurs fournisseurs | Évite la **dépendance à un fournisseur unique** (*vendor lock-in*) ; privilégie le fournisseur gratuit (local) et n'utilise le fournisseur payant qu'en secours ; le cache Redis évite de repayer des tris identiques |
-| **Auditeur** (*Cloud Auditor* / *Auditor*) | Un **auditeur externe indépendant** : délégué à la protection des données, cabinet d'audit de sécurité, ou l'entreprise cliente qui vérifie les SLA | **Audit de confidentialité** : les tickets contiennent des données personnelles (RGPD, et en Espagne la LOPDGDD) ; envoi de données à une API externe. **Audit de sécurité** : gestion des secrets, surface d'exposition. **Audit de performance** : respect des SLA et taux d'escalade | La **traçabilité intégrée** (historique des états, RN-07, métriques) réduit le coût d'un audit ; la conformité évite des sanctions et rassure les clients. Le mode Ollama local permet de **ne pas faire sortir les données** si un client l'exige |
+| **Intermédiaire** (*Cloud Broker* / *Intermediario*) | **TriageAI elle-même**, vis-à-vis des entreprises clientes : la plateforme agrège le fournisseur cloud (IaaS/PaaS) et l'API Anthropic en **un seul service facturé une seule fois**. Le NIST SP 500-292 prévoit explicitement qu'un même acteur cumule les rôles de fournisseur et d'intermédiaire | **Agrégation de service** (*service aggregation*) : la PME n'a ni compte cloud ni clé API Anthropic à gérer. **Intermédiation technique** : le composant `AnthropicClient` de `servicio-agente-triaje` encapsule l'appel au LLM derrière un circuit breaker et un cache, et reste conçu pour accueillir un second fournisseur si besoin (voir 6.9) | Simplifie l'offre pour la PME (**un seul contrat, une seule facture**) ; le cache Redis évite de repayer un tri identique |
+| **Auditeur** (*Cloud Auditor* / *Auditor*) | Un **auditeur externe indépendant** : délégué à la protection des données, cabinet d'audit de sécurité, ou l'entreprise cliente qui vérifie les SLA | **Audit de confidentialité** : les tickets contiennent des données personnelles (RGPD, et en Espagne la LOPDGDD) ; envoi de données à une API externe. **Audit de sécurité** : gestion des secrets, surface d'exposition. **Audit de performance** : respect des SLA et taux d'escalade | La **traçabilité intégrée** (historique des états, RN-07, métriques) réduit le coût d'un audit ; la conformité évite des sanctions et rassure les clients |
 | **Opérateur réseau** (*Cloud Carrier* / *Operador*) | Les **fournisseurs d'accès à Internet** des clients, le **réseau du fournisseur cloud**, et Internet entre la plateforme et l'API Anthropic | Transporter les requêtes HTTPS entre les clients et `api-gateway`, et entre `servicio-agente-triaje` et Anthropic | Coût du **trafic sortant** (*egress*) facturé par le fournisseur cloud ; la latence réseau s'ajoute à celle du LLM. Les payloads JSON compacts et le cache limitent ce trafic |
 
 ### 5.3 Analyse de l'impact économique
@@ -294,7 +294,6 @@ Aucun achat de serveurs ni de GPU : toutes les ressources sont louées et payée
 Coût par ticket = Coût LLM + Coût infrastructure / nombre de tickets
 
 Coût LLM (Anthropic) = tokens_entrée × prix_entrée + tokens_sortie × prix_sortie
-Coût LLM (Ollama)    = 0 € d'API, mais du temps de calcul (CPU/GPU) facturé par le fournisseur cloud
 ```
 
 Les prix unitaires seront relevés sur les pages tarifaires officielles au moment du déploiement ; les volumes de tokens seront mesurés grâce à RN-07.
@@ -303,7 +302,6 @@ Les prix unitaires seront relevés sur les pages tarifaires officielles au momen
 
 | Levier | Effet |
 |---|---|
-| Fournisseur local Ollama en priorité | Pas de coût par token pour le cas nominal |
 | Cache Redis des tris | Un ticket identique (ex. panne massive) n'est payé qu'une fois |
 | Élasticité (section 4.5) | On ne paie la capacité de pointe que pendant les pics |
 | Rate limiting au gateway | Empêche un client d'épuiser le budget d'API |
@@ -325,8 +323,8 @@ TriageAI suit une **architecture de microservices** (*arquitectura de microservi
 | **Services sans état** (*stateless*) | Aucun état en mémoire : les données vivent dans PostgreSQL et Redis, ce qui permet de répliquer les services |
 | **Base de données par service** (*database per service*) | Chaque service possède son propre schéma ; aucun service ne lit les tables d'un autre |
 | **Communication asynchrone pour les tâches lentes** | Le tri IA (plusieurs secondes) est déclenché par un événement, pas par un appel bloquant |
-| **Configuration externalisée** | Ordre des fournisseurs LLM, timeouts, délais SLA : lus depuis le Config Server, modifiables sans recompiler |
-| **Conception pour la défaillance** (*design for failure*) | Circuit breaker, basculement entre fournisseurs LLM, dégradation contrôlée par règles |
+| **Configuration externalisée** | Timeouts, seuil de confiance, délais SLA : lus depuis le Config Server, modifiables sans recompiler |
+| **Conception pour la défaillance** (*design for failure*) | Circuit breaker sur l'appel à Anthropic, dégradation contrôlée par règles |
 
 ### 6.2 Diagramme de composants
 
@@ -361,12 +359,11 @@ flowchart LR
 ```yaml
 # config-repo/servicio-agente-triaje.yml
 llm:
-  proveedor-primario: ollama        # anthropic en production
-  proveedor-secundario: anthropic
+  proveedor: anthropic
+  modelo: <modelo configurado>
   timeout-segundos: 60
   umbral-confianza: 0.7             # RN-04
 resilience4j.circuitbreaker.instances:
-  ollama:    { failureRateThreshold: 50, waitDurationInOpenState: 60s }
   anthropic: { failureRateThreshold: 50, waitDurationInOpenState: 60s }
 ```
 
@@ -380,7 +377,6 @@ sequenceDiagram
     participant TK as servicio-tickets
     participant RD as Redis
     participant AG as servicio-agente-triaje
-    participant OL as Ollama
     participant AN as API Anthropic
 
     C->>GW: POST /api/v1/tickets
@@ -391,22 +387,21 @@ sequenceDiagram
     GW-->>C: 201 Created
 
     RD-->>AG: XREADGROUP → ticket.creado
-    alt Circuit Ollama fermé (CLOSED)
-        AG->>OL: POST /api/chat (ticket + définition des outils)
-        OL-->>AG: demande d'outil : obtenerHistorialCliente
+    alt Circuit Anthropic fermé (CLOSED)
+        AG->>AN: POST /v1/messages (ticket + définition des outils)
+        AN-->>AG: demande d'outil : obtenerHistorialCliente
         AG->>TK: GET /internal/clientes/{id}/historial
         TK-->>AG: historique du client
-        AG->>OL: POST /api/chat (résultat de l'outil)
-        OL-->>AG: JSON {categoria, prioridad, resumen, confianza, borrador}
-    else Ollama en échec (timeout · erreur · JSON invalide) ou circuit ouvert
-        AG->>AN: POST /v1/messages (même boucle de tool calling)
+        AG->>AN: POST /v1/messages (résultat de l'outil)
         AN-->>AG: JSON {categoria, prioridad, resumen, confianza, borrador}
+    else Anthropic en échec (timeout · erreur · JSON invalide) ou circuit ouvert
+        AG->>AG: réessais épuisés (Resilience4j)
     end
 
     alt Tri obtenu
         AG->>TK: PUT /internal/tickets/{id}/triaje {modo: IA, ..., trazabilidad}
         TK->>TK: NOUVEAU → TRIÉ · révision manuelle si confiance < 0,7
-    else Les deux fournisseurs ont échoué
+    else L'API Anthropic reste indisponible
         AG->>TK: PUT /internal/tickets/{id}/triaje {modo: REGLAS}
         TK->>TK: tri par mots-clés · NOUVEAU → EN_ATTENTE_DE_TRI
     end
@@ -423,11 +418,10 @@ sequenceDiagram
 | `discovery-server` | Infrastructure | Spring Cloud Netflix Eureka | 8761 | ❌ | Registre de services |
 | `config-server` | Infrastructure | Spring Cloud Config | 8888 | ❌ | Configuration centralisée depuis Git |
 | `servicio-tickets` | Métier | Spring Boot, Spring Data JPA | 8081 | ❌ | Cycle de vie, SLA, escalade, tri par règles, tâches planifiées |
-| `servicio-agente-triaje` | Métier | Spring Boot, Spring AI, Resilience4j | 8082 | ❌ | Agent IA, tool calling, routage et basculement LLM |
+| `servicio-agente-triaje` | Métier | Spring Boot, Spring AI, Resilience4j | 8082 | ❌ | Agent IA, tool calling, résilience face à l'API LLM |
 | `postgres` | Données | PostgreSQL | 5432 | ❌ | Persistance relationnelle |
 | `redis` | Données | Redis | 6379 | ❌ | Cache, rate limiting, bus d'événements (Streams) |
-| `ollama` | IA | Ollama | 11434 | ❌ | Inférence LLM locale |
-| API Anthropic | IA externe | SaaS | 443 | — | Inférence LLM de secours |
+| API Anthropic | IA externe | SaaS | 443 | — | Inférence LLM |
 
 ### 6.6 Protocoles de communication
 
@@ -438,8 +432,7 @@ sequenceDiagram
 | `servicio-tickets` → Redis Streams | RESP | **Asynchrone** | Événement JSON | Publication de `ticket.creado` |
 | Redis Streams → `servicio-agente-triaje` | RESP | **Asynchrone** | Événement JSON | Consommation par groupe de consommateurs |
 | `servicio-agente-triaje` → `servicio-tickets` | HTTP | Synchrone | REST / JSON | Outils de l'agent + enregistrement du tri |
-| `servicio-agente-triaje` → Ollama | HTTP | Synchrone | JSON (`/api/chat`) | Inférence primaire |
-| `servicio-agente-triaje` → Anthropic | HTTPS | Synchrone | JSON (Messages API) | Inférence secondaire |
+| `servicio-agente-triaje` → Anthropic | HTTPS | Synchrone | JSON (Messages API) | Inférence du triage |
 | Services → PostgreSQL | JDBC | Synchrone | SQL | Persistance |
 | Services → `config-server` | HTTP | Au démarrage | JSON / YAML | Lecture de la configuration |
 | Services → `discovery-server` | HTTP | Périodique | JSON | Enregistrement et heartbeat |
@@ -453,7 +446,6 @@ sequenceDiagram
 | Redis — `ticket-events` | `servicio-tickets` (producteur) | Événements `ticket.creado` | Jusqu'à acquittement (`XACK`) |
 | Redis — cache des tris | `servicio-agente-triaje` | Résultat du tri indexé par empreinte du texte (doublons, ex. panne massive) | Temporaire (TTL) |
 | Redis — rate limiting | `api-gateway` | Compteurs de requêtes par client | Temporaire |
-| Volume `ollama-models` | `ollama` | Poids des modèles téléchargés | Permanente |
 
 > Une seule instance PostgreSQL avec **un schéma par service** : l'isolation logique respecte le principe *database per service* tout en limitant la consommation de ressources.
 
@@ -461,8 +453,8 @@ sequenceDiagram
 
 | Aspect | Mesure |
 |---|---|
-| Panne d'un fournisseur LLM | Circuit breaker Resilience4j par fournisseur (`CLOSED` → `OPEN` → `HALF_OPEN`) + timeout configurable |
-| Panne des deux fournisseurs | Tri par règles + état `EN_ATTENTE_DE_TRI` + nouvel essai planifié (RN-06) |
+| Panne de l'API Anthropic | Circuit breaker Resilience4j (`CLOSED` → `OPEN` → `HALF_OPEN`) + timeout et retry configurables |
+| Panne persistante de l'IA | Tri par règles + état `EN_ATTENTE_DE_TRI` + nouvel essai planifié (RN-06) |
 | Panne du service agent | Événements conservés dans le stream Redis jusqu'au redémarrage |
 | Surcharge / abus | Rate limiting au gateway (Redis) |
 | Secrets | `ANTHROPIC_API_KEY` et mots de passe en variables d'environnement, jamais dans Git (`.env` dans `.gitignore`) |
@@ -477,7 +469,7 @@ sequenceDiagram
 | **Un PostgreSQL, un schéma par service** | Une instance par service | Isolation logique suffisante pour le projet, consommation mémoire réduite |
 | **Tri asynchrone** | Appel REST synchrone gateway → agent | Latence LLM élevée et variable ; absorbe les pics de tickets |
 | **Eureka + Config Server** | Découverte et configuration natives de Kubernetes | Indépendant de la plateforme de déploiement ; à réévaluer au Hito 3 (Spring Cloud Kubernetes) |
-| **Deux fournisseurs LLM** | Un seul fournisseur | Continuité de service et maîtrise des coûts (local gratuit / API payante à l'usage) |
+| **Un seul fournisseur LLM (Anthropic)** | Deux fournisseurs avec basculement (Ollama local + Anthropic) | Simplicité pour le MVP ; l'interface `ProveedorLlm` (voir implémentation) reste conçue pour ajouter un second fournisseur si le besoin de continuité de service se confirme |
 
 ## 7. Spécification de l'API REST
 
@@ -512,7 +504,7 @@ Les chemins `/internal/**` ne sont **jamais routés** par le gateway : ils ne so
 | `prioridad` | `CRITIQUE`, `HAUTE`, `MOYENNE`, `BASSE` (RN-02) |
 | `categoria` | `INCIDENT`, `FACTURATION`, `COMPTE`, `QUESTION`, `AUTRE` |
 | `modo` (du tri) | `IA` (tri par LLM), `REGLAS` (tri de secours par mots-clés) |
-| `proveedor` | `OLLAMA`, `ANTHROPIC`, `NINGUNO` (tri par règles) |
+| `proveedor` | `ANTHROPIC`, `NINGUNO` (tri par règles) |
 
 ### 7.3 Vue d'ensemble des endpoints
 
@@ -533,9 +525,9 @@ Les chemins `/internal/**` ne sont **jamais routés** par le gateway : ils ne so
 
 | Verbe | Route | Description | Cas d'utilisation | Réponses |
 |---|---|---|---|---|
-| `GET` | `/api/v1/triaje/proveedores` | État des fournisseurs LLM et de leurs circuit breakers | CU-08 | `200` |
+| `GET` | `/api/v1/triaje/proveedor` | État du fournisseur LLM (Anthropic) et de son circuit breaker | CU-08 | `200` |
 | `POST` | `/api/v1/triaje/tickets/{id}/reintento` | Relancer manuellement le tri IA d'un ticket | CU-07 | `202`, `404`, `409` |
-| `GET` | `/api/v1/triaje/metricas` | Consommation par fournisseur : appels, tokens, latence, taux d'échec (`?desde=&hasta=`) | CU-08 *(extension)* | `200` |
+| `GET` | `/api/v1/triaje/metricas` | Consommation de l'IA : appels, tokens, latence, taux d'échec (`?desde=&hasta=`) | CU-08 *(extension)* | `200` |
 
 #### API interne — `servicio-tickets` (réseau interne uniquement)
 
@@ -605,7 +597,7 @@ Réponse `200 OK` (après le tri par l'IA) :
   },
   "triaje": {
     "modo": "IA",
-    "proveedor": "OLLAMA",
+    "proveedor": "ANTHROPIC",
     "confianza": 0.91,
     "resumen": "Erreur 500 à la connexion bloquant toute une équipe depuis ce matin.",
     "borradorRespuesta": "Bonjour, nous avons bien identifié le problème de connexion et notre équipe technique est mobilisée…"
@@ -695,7 +687,7 @@ Cas 1 — tri réussi par l'IA :
   "resumen": "Erreur 500 à la connexion bloquant toute une équipe depuis ce matin.",
   "borradorRespuesta": "Bonjour, nous avons bien identifié le problème…",
   "trazabilidad": {
-    "proveedor": "OLLAMA",
+    "proveedor": "ANTHROPIC",
     "modelo": "<modèle configuré>",
     "tokensEntrada": 812,
     "tokensSalida": 164,
@@ -705,13 +697,13 @@ Cas 1 — tri réussi par l'IA :
 }
 ```
 
-Cas 2 — les deux fournisseurs ont échoué :
+Cas 2 — l'API Anthropic reste indisponible après les réessais :
 
 ```json
 {
   "modo": "REGLAS",
-  "motivoFallo": "OLLAMA: timeout ; ANTHROPIC: HTTP 429",
-  "trazabilidad": { "proveedor": "NINGUNO", "intentos": 2 }
+  "motivoFallo": "ANTHROPIC: HTTP 429 (circuit OPEN)",
+  "trazabilidad": { "proveedor": "NINGUNO", "intentos": 3 }
 }
 ```
 
@@ -731,17 +723,16 @@ Réponse `200 OK` (5 derniers tickets) :
 }
 ```
 
-#### `GET /api/v1/triaje/proveedores` — État des fournisseurs LLM
+#### `GET /api/v1/triaje/proveedor` — État du fournisseur LLM
 
 Réponse `200 OK` :
 
 ```json
 {
-  "orden": ["OLLAMA", "ANTHROPIC"],
-  "proveedores": [
-    { "nombre": "OLLAMA",    "circuito": "CLOSED", "tasaFallos": 0.04, "latenciaMediaMs": 5200 },
-    { "nombre": "ANTHROPIC", "circuito": "CLOSED", "tasaFallos": 0.00, "latenciaMediaMs": 1900 }
-  ]
+  "proveedor": "ANTHROPIC",
+  "circuito": "CLOSED",
+  "tasaFallos": 0.01,
+  "latenciaMediaMs": 1900
 }
 ```
 

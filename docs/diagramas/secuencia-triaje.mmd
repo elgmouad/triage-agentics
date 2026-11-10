@@ -5,7 +5,6 @@ sequenceDiagram
     participant TK as servicio-tickets
     participant RD as Redis
     participant AG as servicio-agente-triaje
-    participant OL as Ollama
     participant AN as API Anthropic
 
     C->>GW: POST /api/v1/tickets
@@ -16,22 +15,21 @@ sequenceDiagram
     GW-->>C: 201 Created
 
     RD-->>AG: XREADGROUP → ticket.creado
-    alt Circuit Ollama fermé (CLOSED)
-        AG->>OL: POST /api/chat (ticket + définition des outils)
-        OL-->>AG: demande d'outil : obtenerHistorialCliente
+    alt Circuit Anthropic fermé (CLOSED)
+        AG->>AN: POST /v1/messages (ticket + définition des outils)
+        AN-->>AG: demande d'outil : obtenerHistorialCliente
         AG->>TK: GET /internal/clientes/{id}/historial
         TK-->>AG: historique du client
-        AG->>OL: POST /api/chat (résultat de l'outil)
-        OL-->>AG: JSON {categoria, prioridad, resumen, confianza, borrador}
-    else Ollama en échec (timeout · erreur · JSON invalide) ou circuit ouvert
-        AG->>AN: POST /v1/messages (même boucle de tool calling)
+        AG->>AN: POST /v1/messages (résultat de l'outil)
         AN-->>AG: JSON {categoria, prioridad, resumen, confianza, borrador}
+    else Anthropic en échec (timeout · erreur · JSON invalide) ou circuit ouvert
+        AG->>AG: réessais épuisés (Resilience4j)
     end
 
     alt Tri obtenu
         AG->>TK: PUT /internal/tickets/{id}/triaje {modo: IA, ..., trazabilidad}
         TK->>TK: NOUVEAU → TRIÉ · révision manuelle si confiance < 0,7
-    else Les deux fournisseurs ont échoué
+    else L'API Anthropic reste indisponible
         AG->>TK: PUT /internal/tickets/{id}/triaje {modo: REGLAS}
         TK->>TK: tri par mots-clés · NOUVEAU → EN_ATTENTE_DE_TRI
     end
