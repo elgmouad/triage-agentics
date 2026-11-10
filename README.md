@@ -1,342 +1,340 @@
-# TriageAI — Triage intelligent de tickets de support
+# TriageAI — Intelligent Support Ticket Triage
 
-> Projet de la matière **Cloud Computing: Fundamentos e Infraestructuras**
-> Máster Universitario en Ingeniería Informática — ETSIIT, Universidad de Granada (curso 2026-27)
-
-> ⚠️ **Brouillon de travail en français.** La version finale sera traduite (espagnol ou anglais) avant la remise du Hito 1.
+> Project for the course **Cloud Computing: Fundamentos e Infraestructuras**
+> Máster Universitario en Ingeniería Informática — ETSIIT, Universidad de Granada (2026-27)
 
 ---
 
-## Table des matières
+## Table of contents
 
-1. [Description du domaine](#1-description-du-domaine)
-2. [Règles métier](#2-règles-métier)
-3. [Cas d'utilisation](#3-cas-dutilisation)
-4. [Justification NIST SP 800-145](#4-justification-nist-sp-800-145)
-5. [Mapping des acteurs NIST SP 500-292](#5-mapping-des-acteurs-nist-sp-500-292)
+1. [Domain description](#1-domain-description)
+2. [Business rules](#2-business-rules)
+3. [Use cases](#3-use-cases)
+4. [NIST SP 800-145 justification](#4-nist-sp-800-145-justification)
+5. [NIST SP 500-292 actor mapping](#5-nist-sp-500-292-actor-mapping)
 6. [Architecture](#6-architecture)
-7. [Spécification de l'API REST](#7-spécification-de-lapi-rest)
-8. [Gestion du projet](#8-gestion-du-projet)
-9. [État du projet](#9-état-du-projet)
+7. [REST API specification](#7-rest-api-specification)
+8. [Project management](#8-project-management)
+9. [Project status](#9-project-status)
 
 ---
 
-## 1. Description du domaine
+## 1. Domain description
 
-### 1.1 Le problème métier
+### 1.1 The business problem
 
-Les équipes de support technique des PME reçoivent chaque jour un grand volume de demandes (*tickets*) : incidents, questions, réclamations. Aujourd'hui, **le tri de ces demandes est fait manuellement**, ce qui entraîne :
+Technical support teams at SMEs receive a large volume of requests (*tickets*) every day: incidents, questions, complaints. Today, **triaging these requests is done manually**, which causes:
 
-- **Perte de temps** : un agent humain doit lire chaque ticket pour en décider la catégorie et la priorité avant même de commencer à le résoudre.
-- **Priorisation incohérente** : deux agents peuvent classer différemment le même problème ; un incident critique peut rester bloqué derrière des questions mineures.
-- **Non-respect des délais** : les entreprises s'engagent sur des délais de réponse (*SLA*). Sans suivi automatique, ils sont dépassés sans que personne ne s'en aperçoive.
-- **Réponses répétitives** : beaucoup de tickets concernent des problèmes déjà connus, mais chaque réponse est rédigée à partir de zéro.
-- **Charge très irrégulière** : lors d'une panne ou d'un lancement de produit, le volume de tickets peut être multiplié par dix en quelques heures, puis redevenir normal.
+- **Wasted time**: a human agent has to read every ticket just to decide its category and priority before even starting to resolve it.
+- **Inconsistent prioritization**: two agents may classify the same problem differently; a critical incident can stay stuck behind minor questions.
+- **Missed deadlines**: companies commit to response times (*SLAs*). Without automatic tracking, they are missed without anyone noticing.
+- **Repetitive answers**: many tickets concern already-known problems, yet every reply is written from scratch.
+- **Highly irregular load**: during an outage or a product launch, ticket volume can multiply tenfold within hours, then return to normal.
 
-### 1.2 La solution proposée
+### 1.2 The proposed solution
 
-**TriageAI** est une application *cloud-native* basée sur des microservices qui automatise la première étape du support. À chaque nouveau ticket :
+**TriageAI** is a *cloud-native* microservices application that automates the first step of support. For every new ticket:
 
-1. un **agent d'intelligence artificielle** analyse le texte, consulte l'historique du client (via un *outil*) et détermine la **catégorie**, la **priorité**, un **résumé** et un **niveau de confiance** ;
-2. il propose un **brouillon de réponse** à l'agent humain ;
-3. le système **suit automatiquement les délais SLA** et **escalade** les tickets à risque.
+1. an **AI agent** analyzes the text, looks up the customer's history (via a *tool*) and determines the **category**, the **priority**, a **summary** and a **confidence level**;
+2. it proposes a **draft reply** to the human agent;
+3. the system **automatically tracks SLA deadlines** and **escalates** at-risk tickets.
 
-**Principes clés :**
+**Key principles:**
 
-- **Human-in-the-loop** : l'IA n'envoie jamais de réponse seule au client ; un agent humain valide toujours la proposition.
-- **Résilience face à l'IA externe** : l'agent appelle l'**API Anthropic**, protégée par un *circuit breaker* (timeouts, erreurs, limites de débit).
-- **Dégradation contrôlée** : si l'API Anthropic est indisponible, un tri par **règles simples** est appliqué et le tri IA est relancé plus tard. Aucun ticket n'est jamais perdu.
+- **Human-in-the-loop**: the AI never sends a reply to the customer on its own; a human agent always validates the proposal.
+- **Resilience against the external AI**: the agent calls the **Anthropic API**, protected by a *circuit breaker* (timeouts, errors, rate limits).
+- **Graceful degradation**: if the Anthropic API is unavailable, a **rule-based** fallback triage is applied and the AI triage is retried later. No ticket is ever lost.
 
-### 1.3 Acteurs
+### 1.3 Actors
 
-| Acteur | Description |
+| Actor | Description |
 |---|---|
-| **Client** | Utilisateur final qui signale un problème et suit l'avancement de sa demande |
-| **Agent de support** | Employé humain qui valide le tri, répond et résout les tickets |
-| **Superviseur** | Responsable de l'équipe : surveille les délais, les escalades et les métriques |
-| **Agent IA** | Composant automatique qui trie les tickets et propose des réponses |
-| **Planificateur** (système) | Tâche automatique qui vérifie les SLA et relance les tris en attente |
+| **Customer** | End user who reports a problem and tracks the progress of their request |
+| **Support agent** | Human employee who validates the triage, replies to and resolves tickets |
+| **Supervisor** | Team lead: monitors deadlines, escalations and metrics |
+| **AI agent** | Automated component that triages tickets and proposes replies |
+| **Scheduler** (system) | Automated job that checks SLAs and retries pending triages |
 
 ---
 
-## 2. Règles métier
+## 2. Business rules
 
-Ces règles constituent la logique métier de l'application (au-delà d'un simple CRUD).
+These rules form the business logic of the application (beyond plain CRUD).
 
-### RN-01 — Cycle de vie du ticket (machine à états)
+### RN-01 — Ticket lifecycle (state machine)
 
 ```mermaid
 stateDiagram-v2
-    [*] --> NOUVEAU
-    NOUVEAU --> TRIE : tri IA réussi
-    NOUVEAU --> EN_ATTENTE_DE_TRI : IA indisponible
-    EN_ATTENTE_DE_TRI --> TRIE : nouvel essai réussi
-    TRIE --> EN_COURS : un agent prend le ticket
-    EN_COURS --> RESOLU : solution apportée
-    RESOLU --> EN_COURS : réouverture par le client (≤ 7 jours)
-    RESOLU --> FERME : 7 jours sans réouverture
-    FERME --> [*]
+    [*] --> NUEVO
+    NUEVO --> TRIADO : AI triage succeeded
+    NUEVO --> PENDIENTE_TRIAJE : AI unavailable
+    PENDIENTE_TRIAJE --> TRIADO : retry succeeded
+    TRIADO --> EN_CURSO : an agent picks up the ticket
+    EN_CURSO --> RESUELTO : fix provided
+    RESUELTO --> EN_CURSO : reopened by the customer (≤ 7 days)
+    RESUELTO --> CERRADO : 7 days without reopening
+    CERRADO --> [*]
 ```
 
-- Seules les transitions représentées sont autorisées ; toute autre transition est refusée par l'API.
-- Un ticket `RESOLU` peut être rouvert par le client pendant 7 jours, puis passe automatiquement à `FERME`.
+- Only the transitions shown are allowed; any other transition is rejected by the API.
+- A `RESUELTO` ticket can be reopened by the customer for 7 days, after which it automatically moves to `CERRADO`.
 
-### RN-02 — Délais SLA selon la priorité
+### RN-02 — SLA deadlines by priority
 
-| Priorité | Première réponse | Résolution |
+| Priority | First response | Resolution |
 |---|---|---|
-| CRITIQUE | 1 h | 8 h |
-| HAUTE | 4 h | 24 h |
-| MOYENNE | 24 h | 3 jours |
-| BASSE | 72 h | 7 jours |
+| CRITICA | 1 h | 8 h |
+| ALTA | 4 h | 24 h |
+| MEDIA | 24 h | 3 days |
+| BAJA | 72 h | 7 days |
 
-Valeurs indicatives, **configurables** via le Config Server.
+Indicative values, **configurable** through the Config Server.
 
-### RN-03 — Escalade automatique
+### RN-03 — Automatic escalation
 
-Lorsqu'un ticket atteint **80 % de son délai SLA** sans réponse, il est marqué **« escaladé »** et le superviseur est alerté. L'escalade est un indicateur posé sur le ticket, pas un état.
+When a ticket reaches **80% of its SLA deadline** without a response, it is marked **"escalated"** and the supervisor is alerted. Escalation is a flag set on the ticket, not a state.
 
-### RN-04 — Seuil de confiance de l'IA
+### RN-04 — AI confidence threshold
 
-L'IA renvoie un niveau de confiance entre 0 et 1. En dessous de **0,7**, le ticket est marqué **« révision manuelle requise »**.
+The AI returns a confidence level between 0 and 1. Below **0.7**, the ticket is marked **"manual review required"**.
 
-### RN-05 — Validation humaine obligatoire
+### RN-05 — Mandatory human validation
 
-Un brouillon de réponse généré par l'IA ne peut jamais être envoyé au client sans validation d'un agent de support.
+An AI-generated draft reply can never be sent to the customer without validation from a support agent.
 
-### RN-06 — Résilience et dégradation contrôlée
+### RN-06 — Resilience and graceful degradation
 
-1. Appel à l'**API Anthropic** (via Spring AI).
-2. En cas d'échec (timeout, erreur de connexion, HTTP 401/403/429/5xx, JSON invalide) → nouvel essai selon la politique de `Resilience4j` (retry borné).
-3. Un **circuit breaker** (états `CLOSED` / `OPEN` / `HALF_OPEN`) évite de marteler l'API quand elle est déjà en panne ou en limite de débit.
-4. Si l'appel échoue malgré tout (circuit `OPEN` ou échecs répétés) → **tri par règles** (mots-clés), état `EN_ATTENTE_DE_TRI`, nouvel essai planifié.
+1. Call to the **Anthropic API** (via Spring AI).
+2. On failure (timeout, connection error, HTTP 401/403/429/5xx, invalid JSON) → retry according to the `Resilience4j` policy (bounded retry).
+3. A **circuit breaker** (`CLOSED` / `OPEN` / `HALF_OPEN` states) avoids hammering the API when it is already down or rate-limited.
+4. If the call still fails (circuit `OPEN` or repeated failures) → **rule-based triage** (keywords), `PENDIENTE_TRIAJE` state, retry scheduled.
 
-### RN-07 — Traçabilité de l'IA
+### RN-07 — AI traceability
 
-Chaque tri enregistre le **fournisseur utilisé**, le **nombre de tokens** consommés et le **temps de réponse**.
+Every triage records the **provider used**, the **number of tokens** consumed and the **response time**.
 
 ---
 
-## 3. Cas d'utilisation
+## 3. Use cases
 
 ### 3.1 MVP
 
-| Code | Cas d'utilisation | Acteur | Description | Règles |
+| Code | Use case | Actor | Description | Rules |
 |---|---|---|---|---|
-| **CU-01** | Créer un ticket | Client | Le client décrit son problème (titre, description) | RN-01 |
-| **CU-02** | Consulter ses tickets | Client | Voir l'état et l'historique de ses demandes | — |
-| **CU-03** | Trier automatiquement un ticket | Agent IA | Catégorie, priorité, résumé, confiance et brouillon de réponse, en consultant l'historique du client | RN-04, RN-06, RN-07 |
-| **CU-04** | Valider le tri et répondre | Agent de support | Consulter la proposition de l'IA, la corriger si besoin, envoyer la réponse | RN-05 |
-| **CU-05** | Changer l'état d'un ticket | Agent de support | Faire avancer le ticket dans son cycle de vie | RN-01 |
-| **CU-06** | Surveiller les SLA et escalader | Planificateur | Vérifier les délais et marquer les tickets à risque | RN-02, RN-03 |
-| **CU-07** | Relancer les tris en attente | Planificateur | Retenter le tri IA des tickets `EN_ATTENTE_DE_TRI` | RN-06 |
+| **CU-01** | Create a ticket | Customer | The customer describes their problem (title, description) | RN-01 |
+| **CU-02** | View own tickets | Customer | See the status and history of their requests | — |
+| **CU-03** | Automatically triage a ticket | AI agent | Category, priority, summary, confidence and draft reply, by looking up the customer's history | RN-04, RN-06, RN-07 |
+| **CU-04** | Validate the triage and reply | Support agent | Review the AI's proposal, correct it if needed, send the reply | RN-05 |
+| **CU-05** | Change a ticket's state | Support agent | Move the ticket forward in its lifecycle | RN-01 |
+| **CU-06** | Monitor SLAs and escalate | Scheduler | Check deadlines and flag at-risk tickets | RN-02, RN-03 |
+| **CU-07** | Retry pending triages | Scheduler | Retry AI triage for tickets in `PENDIENTE_TRIAJE` | RN-06 |
 
-### 3.2 Extensions (optionnelles)
+### 3.2 Extensions (optional)
 
-| Code | Cas d'utilisation | Acteur |
+| Code | Use case | Actor |
 |---|---|---|
-| **CU-08** | Consulter les métriques (tickets par état, respect des SLA, consommation par fournisseur LLM) | Superviseur |
-| **CU-09** | Rouvrir un ticket résolu | Client |
-| **CU-10** | Configurer les délais SLA | Superviseur |
+| **CU-08** | View metrics (tickets by state, SLA compliance, consumption per LLM provider) | Supervisor |
+| **CU-09** | Reopen a resolved ticket | Customer |
+| **CU-10** | Configure SLA deadlines | Supervisor |
 
-### 3.3 Hors périmètre
+### 3.3 Out of scope
 
-- Réception de tickets par e-mail, chat ou réseaux sociaux (l'API REST suffit).
-- Gestion avancée des comptes et des droits.
-- Interface web complète (Swagger UI / Postman pour les démonstrations).
+- Receiving tickets by email, chat or social media (the REST API is sufficient).
+- Advanced account and permission management.
+- A full web interface (Swagger UI / Postman for demonstrations).
 
 ---
 
-## 4. Justification NIST SP 800-145
+## 4. NIST SP 800-145 justification
 
-> Référence : P. Mell, T. Grance, *The NIST Definition of Cloud Computing*, NIST SP 800-145, 2011. https://doi.org/10.6028/NIST.SP.800-145
+> Reference: P. Mell, T. Grance, *The NIST Definition of Cloud Computing*, NIST SP 800-145, 2011. https://doi.org/10.6028/NIST.SP.800-145
 
-Le NIST définit le cloud computing par **5 caractéristiques essentielles**. Cette section montre comment TriageAI les exploite et pourquoi le problème métier (section 1) a **besoin** du cloud.
+NIST defines cloud computing through **5 essential characteristics**. This section shows how TriageAI leverages each of them and why the business problem (section 1) **needs** the cloud.
 
-### 4.1 Synthèse
+### 4.1 Summary
 
-| Caractéristique NIST | Besoin métier de TriageAI | Mécanisme technique | Hito où elle sera démontrée |
+| NIST characteristic | TriageAI's business need | Technical mechanism | Hito where it will be demonstrated |
 |---|---|---|---|
-| **Autoservice à la demande** (*Autoservicio bajo demanda*) | Ajouter de la capacité ou un environnement sans intervention humaine du fournisseur | Infrastructure décrite en code (IaC), configuration externalisée | Hito 3, Hito 4 |
-| **Large accès réseau** (*Acceso amplio a la red*) | Clients et agents de support dispersés, sur tout type d'appareil | API REST sur HTTPS via un point d'entrée unique | Hito 1 (API), Hito 4 (déploiement) |
-| **Mutualisation des ressources** (*Asignación común de recursos*) | Servir plusieurs entreprises clientes avec la même plateforme | Modèle multi-locataire, ressources physiques partagées du fournisseur | Hito 3 |
-| **Élasticité rapide** (*Rápida elasticidad*) | Absorber des pics de tickets ×10 lors d'une panne ou d'un lancement | Services sans état réplicables, file d'événements Redis Streams | Hito 2, Hito 5 (tests de charge) |
-| **Service mesuré** (*Servicio medido*) | Connaître et maîtriser le coût de chaque ticket trié par IA | Traçabilité des tokens et latences (RN-07), métriques Actuator | Hito 1 (conception), Hito 5 (observabilité) |
+| **On-demand self-service** | Add capacity or an environment without human intervention from the provider | Infrastructure as code (IaC), externalized configuration | Hito 3, Hito 4 |
+| **Broad network access** | Customers and support agents are spread out, on any kind of device | REST API over HTTPS through a single entry point | Hito 1 (API), Hito 4 (deployment) |
+| **Resource pooling** | Serve several client companies with the same platform | Multi-tenant model, physical resources shared by the provider | Hito 3 |
+| **Rapid elasticity** | Absorb ×10 ticket spikes during an outage or a launch | Stateless, replicable services, Redis Streams event queue | Hito 2, Hito 5 (load testing) |
+| **Measured service** | Know and control the cost of every AI-triaged ticket | Token and latency traceability (RN-07), Actuator metrics | Hito 1 (design), Hito 5 (observability) |
 
-### 4.2 Autoservice à la demande
+### 4.2 On-demand self-service
 
-**Définition NIST (résumée) :** le consommateur peut obtenir lui-même des capacités de calcul (serveurs, stockage…) automatiquement, **sans interaction humaine** avec le fournisseur.
+**NIST definition (summarized):** a consumer can unilaterally provision computing capabilities (servers, storage…) automatically, **without human interaction** with the provider.
 
-**Application à TriageAI :**
+**Application to TriageAI:**
 
-- Toute l'infrastructure (conteneurs, réseau, base de données, cache) sera décrite par du code et créée par une simple commande, sans ticket adressé à un administrateur (Hito 3).
-- Un nouvel environnement complet (test, démonstration, production) peut être obtenu à la demande à partir des mêmes fichiers.
-- Côté IA, l'accès à l'API Anthropic s'obtient en libre-service : création d'une clé et facturation à l'usage, sans contrat ni matériel.
-- Les paramètres métier (délais SLA, ordre des fournisseurs LLM, seuil de confiance) se modifient dans le dépôt de configuration, sans redéploiement du code.
+- All infrastructure (containers, network, database, cache) will be described as code and created with a single command, with no ticket filed to an administrator (Hito 3).
+- A whole new environment (test, demo, production) can be obtained on demand from the same files.
+- On the AI side, access to the Anthropic API is self-service: create a key and pay per use, with no contract or hardware.
+- Business parameters (SLA deadlines, LLM provider order, confidence threshold) are changed in the configuration repository, with no code redeployment.
 
-### 4.3 Large accès réseau
+### 4.3 Broad network access
 
-**Définition NIST (résumée) :** les capacités sont disponibles sur le réseau et accessibles par des mécanismes standards, depuis des clients hétérogènes (ordinateurs, mobiles, tablettes…).
+**NIST definition (summarized):** capabilities are available over the network and accessed through standard mechanisms, from heterogeneous clients (computers, phones, tablets…).
 
-**Application à TriageAI :**
+**Application to TriageAI:**
 
-- Toutes les fonctionnalités sont exposées par une **API REST standard** (HTTP, JSON, OpenAPI) derrière `api-gateway` : n'importe quel client (application web, mobile, outil interne, intégration d'un autre logiciel) peut l'utiliser.
-- Les clients signalent leurs problèmes depuis n'importe où ; les agents de support peuvent travailler à distance.
-- Le contrat de l'API est documenté et versionné (`/api/v1`), ce qui facilite l'intégration par des tiers.
+- All functionality is exposed through a **standard REST API** (HTTP, JSON, OpenAPI) behind `api-gateway`: any client (web app, mobile app, internal tool, integration from another system) can use it.
+- Customers report problems from anywhere; support agents can work remotely.
+- The API contract is documented and versioned (`/api/v1`), which makes third-party integration easier.
 
-### 4.4 Mutualisation des ressources
+### 4.4 Resource pooling
 
-**Définition NIST (résumée) :** les ressources du fournisseur sont regroupées pour servir plusieurs consommateurs selon un **modèle multi-locataire**, et réaffectées dynamiquement selon la demande. Le consommateur ne connaît pas l'emplacement exact des ressources.
+**NIST definition (summarized):** the provider's resources are pooled to serve multiple consumers in a **multi-tenant model**, and dynamically reassigned according to demand. The consumer has no knowledge of the exact location of the resources.
 
-**Application à TriageAI :**
+**Application to TriageAI:**
 
-- **Côté fournisseur cloud :** les conteneurs de TriageAI s'exécutent sur une infrastructure physique partagée avec d'autres clients du fournisseur ; TriageAI ne gère ni serveurs ni centre de données.
-- **Côté TriageAI :** la plateforme est conçue pour servir **plusieurs entreprises clientes** (PME) avec les mêmes instances de services, la même base de données et le même cache. La séparation est logique (identifiant du client sur chaque ticket), pas physique.
-- **Côté IA :** l'API Anthropic est elle-même un service mutualisé entre de nombreux consommateurs ; TriageAI n'en paie que la part utilisée.
+- **On the cloud provider's side:** TriageAI's containers run on physical infrastructure shared with the provider's other customers; TriageAI manages neither servers nor a data center.
+- **On TriageAI's side:** the platform is designed to serve **several client companies** (SMEs) with the same service instances, the same database and the same cache. The separation is logical (a customer ID on every ticket), not physical.
+- **On the AI side:** the Anthropic API is itself a pooled service shared among many consumers; TriageAI only pays for the share it uses.
 
-### 4.5 Élasticité rapide
+### 4.5 Rapid elasticity
 
-**Définition NIST (résumée) :** les capacités peuvent être augmentées ou réduites rapidement, parfois automatiquement, en fonction de la demande. Pour le consommateur, elles semblent illimitées.
+**NIST definition (summarized):** capabilities can be scaled up or down quickly, sometimes automatically, according to demand. To the consumer, they appear unlimited.
 
-**Application à TriageAI :** c'est la caractéristique la plus importante pour le projet, car la charge de support est **très irrégulière** (section 1.1).
+**Application to TriageAI:** this is the most important characteristic for the project, since support load is **highly irregular** (section 1.1).
 
-- **Services sans état :** `servicio-tickets` et `servicio-agente-triaje` ne gardent aucune donnée en mémoire ; on peut donc lancer 1, 3 ou 10 répliques selon la charge.
-- **File d'événements :** lors d'un pic, les tickets sont enregistrés immédiatement et les événements `ticket.creado` s'accumulent dans Redis Streams. Les répliques de l'agent IA, membres du même groupe de consommateurs, se **partagent le travail** automatiquement.
-- **Indicateur d'élasticité :** la longueur de la file `ticket-events` est une métrique naturelle pour déclencher l'ajout ou la suppression de répliques.
-- **Élasticité de l'IA :** l'API Anthropic est elle-même un service managé et élastique côté fournisseur ; le cache Redis et le rate limiting évitent de payer deux fois un tri identique lors d'un pic (ex. panne massive signalée par de nombreux clients).
+- **Stateless services:** `servicio-tickets` and `servicio-agente-triaje` keep no data in memory, so 1, 3 or 10 replicas can be run depending on load.
+- **Event queue:** during a spike, tickets are recorded immediately and `ticket.creado` events pile up in Redis Streams. The AI agent's replicas, members of the same consumer group, **share the work** automatically.
+- **Elasticity signal:** the length of the `ticket-events` stream is a natural metric for triggering the addition or removal of replicas.
+- **AI-side elasticity:** the Anthropic API is itself a managed, elastic service on the provider's side; the Redis cache and rate limiting avoid paying twice for an identical triage during a spike (e.g. a massive outage reported by many customers).
 
-**Illustration (hypothèses chiffrées à titre d'exemple) :** une charge normale demande 1 réplique de l'agent IA et un pic en demande 10 pendant 5 % du temps.
+**Illustration (figures used for the sake of example):** a normal load needs 1 AI-agent replica, and a spike needs 10, for 5% of the time.
 
-| Approche | Capacité payée | Équivalent machines sur l'année |
+| Approach | Capacity paid for | Equivalent machine-years |
 |---|---|---|
-| Serveurs propres dimensionnés pour le pic | 10 répliques en permanence | 10 |
-| Cloud élastique | 1 réplique × 95 % + 10 répliques × 5 % | **1,45** |
+| Own servers sized for the peak | 10 replicas at all times | 10 |
+| Elastic cloud | 1 replica × 95% + 10 replicas × 5% | **1.45** |
 
-Dans cet exemple, l'élasticité réduit la capacité payée d'environ **85 %**. Les vrais chiffres seront mesurés lors des tests de charge du Hito 5.
+In this example, elasticity cuts the capacity paid for by roughly **85%**. Real figures will be measured during Hito 5's load tests.
 
-### 4.6 Service mesuré
+### 4.6 Measured service
 
-**Définition NIST (résumée) :** l'usage des ressources est automatiquement **mesuré, contrôlé et rapporté**, ce qui assure la transparence pour le fournisseur et le consommateur (paiement à l'usage).
+**NIST definition (summarized):** resource usage is automatically **measured, controlled and reported**, which ensures transparency for both the provider and the consumer (pay-per-use).
 
-**Application à TriageAI :**
+**Application to TriageAI:**
 
-- **Mesure de l'IA (RN-07) :** chaque appel LLM enregistre le fournisseur, le modèle, les tokens d'entrée et de sortie, la latence et le résultat (table `llamada_llm`). Le **coût de chaque ticket trié** est donc calculable.
-- **Mesure de l'infrastructure :** chaque service expose ses métriques (Spring Boot Actuator, Micrometer) : requêtes, erreurs, temps de réponse, consommation mémoire.
-- **Contrôle :** le rate limiting du gateway et le cache Redis des tris limitent le nombre d'appels payants à l'API.
-- **Rapport :** l'endpoint `GET /api/v1/triaje/metricas` (CU-08) fournit la consommation (tokens, latence, taux d'échec) par période. Il servira de base à une **facturation par ticket** des entreprises clientes.
+- **AI measurement (RN-07):** every LLM call records the provider, the model, input and output tokens, latency and the outcome (`llamada_llm` table). The **cost of every triaged ticket** can therefore be computed.
+- **Infrastructure measurement:** every service exposes its metrics (Spring Boot Actuator, Micrometer): requests, errors, response times, memory consumption.
+- **Control:** gateway rate limiting and the Redis triage cache limit the number of paid API calls.
+- **Reporting:** the `GET /api/v1/triaje/metricas` endpoint (CU-08) reports consumption (tokens, latency, failure rate) over a period. It will serve as the basis for **per-ticket billing** of client companies.
 
-### 4.7 Modèles de service et de déploiement
+### 4.7 Service and deployment models
 
-Le NIST SP 800-145 définit aussi des modèles de service et de déploiement. TriageAI s'y positionne ainsi :
+NIST SP 800-145 also defines service and deployment models. TriageAI positions itself as follows:
 
-| Point de vue | Modèle |
+| Viewpoint | Model |
 |---|---|
-| TriageAI vu par les entreprises clientes | **SaaS** (*Software as a Service*) : application complète consommée via l'API |
-| Ce que TriageAI consomme pour s'exécuter | **IaaS / PaaS** d'un fournisseur cloud public (à choisir au Hito 3) |
-| Ce que TriageAI consomme pour l'IA | **SaaS / API** : modèle de langage d'Anthropic, facturé à l'usage |
-| Modèle de déploiement | **Cloud public** |
+| TriageAI as seen by client companies | **SaaS** (*Software as a Service*): a complete application consumed through the API |
+| What TriageAI consumes to run | **IaaS / PaaS** from a public cloud provider (to be chosen in Hito 3) |
+| What TriageAI consumes for AI | **SaaS / API**: Anthropic's language model, billed per use |
+| Deployment model | **Public cloud** |
 
 ---
 
-## 5. Mapping des acteurs NIST SP 500-292
+## 5. NIST SP 500-292 actor mapping
 
-> Référence : F. Liu et al., *NIST Cloud Computing Reference Architecture*, NIST SP 500-292, 2011. https://doi.org/10.6028/NIST.SP.500-292
+> Reference: F. Liu et al., *NIST Cloud Computing Reference Architecture*, NIST SP 500-292, 2011. https://doi.org/10.6028/NIST.SP.500-292
 
-L'architecture de référence du NIST définit **5 acteurs**. Pour TriageAI, il faut distinguer deux niveaux : TriageAI **fournit** un service à des entreprises, et TriageAI **consomme** lui-même des services cloud.
+NIST's reference architecture defines **5 actors**. For TriageAI, two levels must be distinguished: TriageAI **provides** a service to companies, and TriageAI itself **consumes** cloud services.
 
-### 5.1 Vue d'ensemble
+### 5.1 Overview
 
 ```mermaid
 flowchart LR
-    subgraph CONS["Consommateurs (Consumidor)"]
-        PME["Entreprises clientes (PME)<br/>et leurs agents de support"]
-        CLI["Clients finaux<br/>qui créent des tickets"]
+    subgraph CONS["Consumers (Consumidor)"]
+        PME["Client companies (SMEs)<br/>and their support agents"]
+        CLI["End customers<br/>who create tickets"]
     end
 
-    subgraph PROV["Fournisseurs (Proveedor)"]
-        TAI["TriageAI<br/>fournisseur SaaS"]
-        IAAS["Fournisseur cloud public<br/>IaaS / PaaS"]
-        ANT["Anthropic<br/>API LLM"]
+    subgraph PROV["Providers (Proveedor)"]
+        TAI["TriageAI<br/>SaaS provider"]
+        IAAS["Public cloud provider<br/>IaaS / PaaS"]
+        ANT["Anthropic<br/>LLM API"]
     end
 
-    BRK["Intermédiaire (Intermediario)<br/>TriageAI : agrège IaaS + API LLM<br/>en un seul service pour la PME"]
-    AUD["Auditeur (Auditor)<br/>RGPD · sécurité · SLA"]
-    CAR["Opérateur réseau (Operador)<br/>FAI · réseau du fournisseur · Internet"]
+    BRK["Broker (Intermediario)<br/>TriageAI: aggregates IaaS + LLM API<br/>into a single service for the SME"]
+    AUD["Auditor<br/>GDPR · security · SLA"]
+    CAR["Carrier (Operador)<br/>ISP · provider's network · Internet"]
 
     CLI --> PME
-    PME -- "consomme le SaaS" --> BRK
+    PME -- "consumes the SaaS" --> BRK
     BRK --> TAI
-    TAI -- "s'exécute sur" --> IAAS
-    TAI -- "appelle" --> ANT
-    AUD -. "audite" .-> TAI
-    CAR -. "transporte" .-> PME
-    CAR -. "transporte" .-> ANT
+    TAI -- "runs on" --> IAAS
+    TAI -- "calls" --> ANT
+    AUD -. "audits" .-> TAI
+    CAR -. "carries" .-> PME
+    CAR -. "carries" .-> ANT
 ```
 
-### 5.2 Détail des rôles
+### 5.2 Role breakdown
 
-| Rôle NIST | Acteur(s) dans TriageAI | Activités dans le projet | Impact économique |
+| NIST role | Actor(s) in TriageAI | Activities in the project | Economic impact |
 |---|---|---|---|
-| **Consommateur** (*Cloud Consumer* / *Consumidor*) | ① Les **entreprises clientes** (PME) et leurs agents de support, qui consomment TriageAI en SaaS. ② **L'équipe TriageAI**, qui consomme de l'IaaS/PaaS et l'API Anthropic | Utiliser l'API, valider les tris, suivre les SLA ; pour l'équipe TriageAI : déployer et payer les ressources consommées | Les PME passent d'un **coût fixe** (agents qui trient à la main) à un **coût variable** par ticket ; l'équipe TriageAI n'a **aucun investissement matériel** (CapEx → OpEx) |
-| **Fournisseur** (*Cloud Provider* / *Proveedor*) | ① **TriageAI** (fournisseur SaaS). ② Le **fournisseur cloud public** (IaaS/PaaS, choisi au Hito 3). ③ **Anthropic** (API LLM) | TriageAI : déploiement, orchestration, gestion du service, sécurité et confidentialité des données de tickets. Fournisseur cloud : calcul, stockage, réseau. Anthropic : inférence du modèle | TriageAI se rémunère **par ticket traité** ou par abonnement ; ses coûts sont l'infrastructure + les tokens. Le fournisseur cloud et Anthropic facturent **à l'usage** (heures de calcul, tokens) |
-| **Intermédiaire** (*Cloud Broker* / *Intermediario*) | **TriageAI elle-même**, vis-à-vis des entreprises clientes : la plateforme agrège le fournisseur cloud (IaaS/PaaS) et l'API Anthropic en **un seul service facturé une seule fois**. Le NIST SP 500-292 prévoit explicitement qu'un même acteur cumule les rôles de fournisseur et d'intermédiaire | **Agrégation de service** (*service aggregation*) : la PME n'a ni compte cloud ni clé API Anthropic à gérer. **Intermédiation technique** : le composant `AnthropicClient` de `servicio-agente-triaje` encapsule l'appel au LLM derrière un circuit breaker et un cache, et reste conçu pour accueillir un second fournisseur si besoin (voir 6.9) | Simplifie l'offre pour la PME (**un seul contrat, une seule facture**) ; le cache Redis évite de repayer un tri identique |
-| **Auditeur** (*Cloud Auditor* / *Auditor*) | Un **auditeur externe indépendant** : délégué à la protection des données, cabinet d'audit de sécurité, ou l'entreprise cliente qui vérifie les SLA | **Audit de confidentialité** : les tickets contiennent des données personnelles (RGPD, et en Espagne la LOPDGDD) ; envoi de données à une API externe. **Audit de sécurité** : gestion des secrets, surface d'exposition. **Audit de performance** : respect des SLA et taux d'escalade | La **traçabilité intégrée** (historique des états, RN-07, métriques) réduit le coût d'un audit ; la conformité évite des sanctions et rassure les clients |
-| **Opérateur réseau** (*Cloud Carrier* / *Operador*) | Les **fournisseurs d'accès à Internet** des clients, le **réseau du fournisseur cloud**, et Internet entre la plateforme et l'API Anthropic | Transporter les requêtes HTTPS entre les clients et `api-gateway`, et entre `servicio-agente-triaje` et Anthropic | Coût du **trafic sortant** (*egress*) facturé par le fournisseur cloud ; la latence réseau s'ajoute à celle du LLM. Les payloads JSON compacts et le cache limitent ce trafic |
+| **Consumer** (*Cloud Consumer*) | ① The **client companies** (SMEs) and their support agents, who consume TriageAI as SaaS. ② **The TriageAI team**, who consumes IaaS/PaaS and the Anthropic API | Using the API, validating triages, tracking SLAs; for the TriageAI team: deploying and paying for the resources consumed | SMEs move from a **fixed cost** (agents triaging by hand) to a **variable, per-ticket cost**; the TriageAI team has **no hardware investment** (CapEx → OpEx) |
+| **Provider** (*Cloud Provider*) | ① **TriageAI** (SaaS provider). ② The **public cloud provider** (IaaS/PaaS, to be chosen in Hito 3). ③ **Anthropic** (LLM API) | TriageAI: deployment, orchestration, service management, security and confidentiality of ticket data. Cloud provider: compute, storage, network. Anthropic: model inference | TriageAI is paid **per processed ticket** or by subscription; its costs are infrastructure + tokens. The cloud provider and Anthropic bill **per use** (compute hours, tokens) |
+| **Broker** (*Cloud Broker*) | **TriageAI itself**, from the client companies' point of view: the platform aggregates the cloud provider (IaaS/PaaS) and the Anthropic API into **a single service billed once**. NIST SP 500-292 explicitly allows the same actor to hold both the provider and broker roles | **Service aggregation**: the SME has neither a cloud account nor an Anthropic API key to manage. **Technical intermediation**: the `AnthropicClient` component in `servicio-agente-triaje` wraps the LLM call behind a circuit breaker and a cache, and remains designed to accommodate a second provider if needed (see 6.9) | Simplifies the offering for the SME (**a single contract, a single invoice**); the Redis cache avoids paying twice for an identical triage |
+| **Auditor** (*Cloud Auditor*) | An **independent external auditor**: a data protection officer, a security audit firm, or the client company checking SLAs | **Privacy audit**: tickets contain personal data (GDPR, and in Spain the LOPDGDD); data is sent to an external API. **Security audit**: secrets management, exposure surface. **Performance audit**: SLA compliance and escalation rate | **Built-in traceability** (state history, RN-07, metrics) lowers the cost of an audit; compliance avoids penalties and reassures customers |
+| **Carrier** (*Cloud Carrier*) | Customers' **Internet service providers**, the **cloud provider's network**, and the Internet between the platform and the Anthropic API | Carrying HTTPS requests between customers and `api-gateway`, and between `servicio-agente-triaje` and Anthropic | Cost of **outbound traffic** (*egress*) billed by the cloud provider; network latency adds to the LLM's own latency. Compact JSON payloads and the cache limit this traffic |
 
-### 5.3 Analyse de l'impact économique
+### 5.3 Economic impact analysis
 
-**1. Passage de CapEx à OpEx** (*inversión de capital → gasto operativo*)
-Aucun achat de serveurs ni de GPU : toutes les ressources sont louées et payées à l'usage. Le risque financier au lancement du service est donc faible.
+**1. From CapEx to OpEx**
+No servers or GPUs are purchased: all resources are rented and paid per use. The financial risk at service launch is therefore low.
 
-**2. Coût d'un ticket trié** — le service mesuré (section 4.6) permet de le calculer :
+**2. Cost of a triaged ticket** — measured service (section 4.6) makes it computable:
 
 ```
-Coût par ticket = Coût LLM + Coût infrastructure / nombre de tickets
+Cost per ticket = LLM cost + Infrastructure cost / number of tickets
 
-Coût LLM (Anthropic) = tokens_entrée × prix_entrée + tokens_sortie × prix_sortie
+LLM cost (Anthropic) = input_tokens × input_price + output_tokens × output_price
 ```
 
-Les prix unitaires seront relevés sur les pages tarifaires officielles au moment du déploiement ; les volumes de tokens seront mesurés grâce à RN-07.
+Unit prices will be taken from the official pricing pages at deployment time; token volumes will be measured through RN-07.
 
-**3. Leviers de réduction des coûts intégrés à l'architecture**
+**3. Cost-reduction levers built into the architecture**
 
-| Levier | Effet |
+| Lever | Effect |
 |---|---|
-| Cache Redis des tris | Un ticket identique (ex. panne massive) n'est payé qu'une fois |
-| Élasticité (section 4.5) | On ne paie la capacité de pointe que pendant les pics |
-| Rate limiting au gateway | Empêche un client d'épuiser le budget d'API |
-| Tri par règles en dernier recours | Le service continue sans aucun coût d'IA |
+| Redis triage cache | An identical ticket (e.g. a massive outage) is only paid for once |
+| Elasticity (section 4.5) | Peak capacity is only paid for during spikes |
+| Gateway rate limiting | Prevents a single client from exhausting the API budget |
+| Rule-based triage as a last resort | The service keeps running at zero AI cost |
 
-**4. Retour sur investissement pour les entreprises clientes**
-Si un agent humain passe en moyenne *t* minutes à trier un ticket, l'économie mensuelle est d'environ `tickets_par_mois × t × coût_horaire_agent / 60`, à comparer au prix payé à TriageAI. La validation humaine reste obligatoire (RN-05), mais elle est plus rapide qu'un tri complet.
+**4. Return on investment for client companies**
+If a human agent spends *t* minutes on average triaging a ticket, the monthly saving is roughly `tickets_per_month × t × agent_hourly_cost / 60`, to be compared against the price paid to TriageAI. Human validation remains mandatory (RN-05), but it is faster than a full triage.
 
 ## 6. Architecture
 
-### 6.1 Style et principes architecturaux
+### 6.1 Architectural style and principles
 
-TriageAI suit une **architecture de microservices** (*arquitectura de microservicios*) orientée cloud-native :
+TriageAI follows a **microservices architecture** oriented toward cloud-native design:
 
-| Principe | Application dans TriageAI |
+| Principle | Application in TriageAI |
 |---|---|
-| **Découpage par responsabilité métier** | Un service pour le cycle de vie des tickets, un service pour l'agent IA |
-| **Point d'entrée unique** (*API Gateway*) | Seul le gateway est exposé à l'extérieur ; les autres services restent sur le réseau interne |
-| **Services sans état** (*stateless*) | Aucun état en mémoire : les données vivent dans PostgreSQL et Redis, ce qui permet de répliquer les services |
-| **Base de données par service** (*database per service*) | Chaque service possède son propre schéma ; aucun service ne lit les tables d'un autre |
-| **Communication asynchrone pour les tâches lentes** | Le tri IA (plusieurs secondes) est déclenché par un événement, pas par un appel bloquant |
-| **Configuration externalisée** | Timeouts, seuil de confiance, délais SLA : lus depuis le Config Server, modifiables sans recompiler |
-| **Conception pour la défaillance** (*design for failure*) | Circuit breaker sur l'appel à Anthropic, dégradation contrôlée par règles |
+| **Decomposition by business responsibility** | One service for the ticket lifecycle, one service for the AI agent |
+| **Single entry point** (*API Gateway*) | Only the gateway is exposed externally; the other services stay on the internal network |
+| **Stateless services** | No in-memory state: data lives in PostgreSQL and Redis, which allows services to be replicated |
+| **Database per service** | Each service owns its own schema; no service reads another service's tables |
+| **Asynchronous communication for slow tasks** | AI triage (several seconds) is triggered by an event, not a blocking call |
+| **Externalized configuration** | Timeouts, confidence threshold, SLA deadlines: read from the Config Server, changeable without recompiling |
+| **Design for failure** | Circuit breaker on the call to Anthropic, graceful rule-based degradation |
 
-### 6.2 Diagramme de composants
+### 6.2 Component diagram
 
-![Diagramme de composants TriageAI](docs/img/arquitectura-componentes.svg)
+![TriageAI component diagram](docs/img/arquitectura-componentes.svg)
 
-> Le **plan de contrôle** (découverte de services et configuration) est représenté séparément en 6.3 pour garder ce diagramme lisible.
+> The **control plane** (service discovery and configuration) is shown separately in 6.3 to keep this diagram readable.
 
-### 6.3 Plan de contrôle : découverte et configuration
+### 6.3 Control plane: discovery and configuration
 
 ```mermaid
 flowchart LR
-    subgraph SVC["Services Spring Boot"]
+    subgraph SVC["Spring Boot services"]
         GW["api-gateway"]
         TK["servicio-tickets"]
         AG["servicio-agente-triaje"]
@@ -344,251 +342,251 @@ flowchart LR
 
     DS["<b>discovery-server</b><br/>Eureka :8761"]
     CS["<b>config-server</b><br/>Spring Cloud Config :8888"]
-    GIT[("<b>config-repo</b><br/>dépôt Git<br/>application.yml par service")]
+    GIT[("<b>config-repo</b><br/>Git repository<br/>application.yml per service")]
 
-    SVC -- "① HTTP · lecture de la config au démarrage" --> CS
+    SVC -- "① HTTP · reads config at startup" --> CS
     CS -- "HTTPS · git clone / pull" --> GIT
-    SVC -- "② HTTP · enregistrement + heartbeat (30 s)" --> DS
-    GW -. "③ résolution lb://nom-du-service" .-> DS
+    SVC -- "② HTTP · registration + heartbeat (30 s)" --> DS
+    GW -. "③ resolves lb://service-name" .-> DS
 ```
 
-**Ordre de démarrage :** `config-server` → `discovery-server` → `servicio-tickets` / `servicio-agente-triaje` → `api-gateway`.
+**Startup order:** `config-server` → `discovery-server` → `servicio-tickets` / `servicio-agente-triaje` → `api-gateway`.
 
-**Exemples de propriétés centralisées :**
+**Examples of centralized properties:**
 
 ```yaml
 # config-repo/servicio-agente-triaje.yml
 llm:
   proveedor: anthropic
-  modelo: <modelo configurado>
+  modelo: <configured model>
   timeout-segundos: 60
   umbral-confianza: 0.7             # RN-04
 resilience4j.circuitbreaker.instances:
   anthropic: { failureRateThreshold: 50, waitDurationInOpenState: 60s }
 ```
 
-### 6.4 Flux principal : création et tri d'un ticket
+### 6.4 Main flow: creating and triaging a ticket
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor C as Client
+    actor C as Customer
     participant GW as api-gateway
     participant TK as servicio-tickets
     participant RD as Redis
     participant AG as servicio-agente-triaje
-    participant AN as API Anthropic
+    participant AN as Anthropic API
 
     C->>GW: POST /api/v1/tickets
     GW->>TK: POST /tickets
-    TK->>TK: validation · état NOUVEAU · calcul des échéances SLA
+    TK->>TK: validation · NUEVO state · SLA deadlines computed
     TK->>RD: XADD ticket-events {ticket.creado}
-    TK-->>GW: 201 Created {id, estado: NOUVEAU}
+    TK-->>GW: 201 Created {id, estado: NUEVO}
     GW-->>C: 201 Created
 
     RD-->>AG: XREADGROUP → ticket.creado
-    alt Circuit Anthropic fermé (CLOSED)
-        AG->>AN: POST /v1/messages (ticket + définition des outils)
-        AN-->>AG: demande d'outil : obtenerHistorialCliente
+    alt Anthropic circuit closed (CLOSED)
+        AG->>AN: POST /v1/messages (ticket + tool definitions)
+        AN-->>AG: tool call: obtenerHistorialCliente
         AG->>TK: GET /internal/clientes/{id}/historial
-        TK-->>AG: historique du client
-        AG->>AN: POST /v1/messages (résultat de l'outil)
+        TK-->>AG: customer history
+        AG->>AN: POST /v1/messages (tool result)
         AN-->>AG: JSON {categoria, prioridad, resumen, confianza, borrador}
-    else Anthropic en échec (timeout · erreur · JSON invalide) ou circuit ouvert
-        AG->>AG: réessais épuisés (Resilience4j)
+    else Anthropic failing (timeout · error · invalid JSON) or circuit open
+        AG->>AG: retries exhausted (Resilience4j)
     end
 
-    alt Tri obtenu
-        AG->>TK: PUT /internal/tickets/{id}/triaje {modo: IA, ..., trazabilidad}
-        TK->>TK: NOUVEAU → TRIÉ · révision manuelle si confiance < 0,7
-    else L'API Anthropic reste indisponible
+    alt Triage obtained
+        AG->>TK: PUT /internal/tickets/{id}/triaje {modo: IA, ..., traceability}
+        TK->>TK: NUEVO → TRIADO · manual review if confidence < 0.7
+    else Anthropic API still unavailable
         AG->>TK: PUT /internal/tickets/{id}/triaje {modo: REGLAS}
-        TK->>TK: tri par mots-clés · NOUVEAU → EN_ATTENTE_DE_TRI
+        TK->>TK: keyword-based triage · NUEVO → PENDIENTE_TRIAJE
     end
-    AG->>RD: XACK (événement traité)
+    AG->>RD: XACK (event processed)
 ```
 
-**Pourquoi un tri asynchrone ?** Un appel LLM peut prendre de 2 à 60 secondes. Le client reçoit immédiatement `201 Created` ; le tri se fait en arrière-plan. Si `servicio-agente-triaje` est arrêté, les événements restent dans le stream Redis et seront traités à son redémarrage : **aucun ticket n'est perdu**.
+**Why asynchronous triage?** An LLM call can take anywhere from 2 to 60 seconds. The customer immediately receives `201 Created`; triage happens in the background. If `servicio-agente-triaje` is down, events stay in the Redis stream and are processed once it restarts: **no ticket is ever lost**.
 
-### 6.5 Catalogue des composants
+### 6.5 Component catalog
 
-| Composant | Type | Technologie | Port | Exposé | Responsabilité |
+| Component | Type | Technology | Port | Exposed | Responsibility |
 |---|---|---|---|---|---|
-| `api-gateway` | Infrastructure | Spring Cloud Gateway | 8080 | ✅ | Routage, rate limiting, point d'entrée unique |
-| `discovery-server` | Infrastructure | Spring Cloud Netflix Eureka | 8761 | ❌ | Registre de services |
-| `config-server` | Infrastructure | Spring Cloud Config | 8888 | ❌ | Configuration centralisée depuis Git |
-| `servicio-tickets` | Métier | Spring Boot, Spring Data JPA | 8081 | ❌ | Cycle de vie, SLA, escalade, tri par règles, tâches planifiées |
-| `servicio-agente-triaje` | Métier | Spring Boot, Spring AI, Resilience4j | 8082 | ❌ | Agent IA, tool calling, résilience face à l'API LLM |
-| `postgres` | Données | PostgreSQL | 5432 | ❌ | Persistance relationnelle |
-| `redis` | Données | Redis | 6379 | ❌ | Cache, rate limiting, bus d'événements (Streams) |
-| API Anthropic | IA externe | SaaS | 443 | — | Inférence LLM |
+| `api-gateway` | Infrastructure | Spring Cloud Gateway | 8080 | ✅ | Routing, rate limiting, single entry point |
+| `discovery-server` | Infrastructure | Spring Cloud Netflix Eureka | 8761 | ❌ | Service registry |
+| `config-server` | Infrastructure | Spring Cloud Config | 8888 | ❌ | Centralized configuration from Git |
+| `servicio-tickets` | Business | Spring Boot, Spring Data JPA | 8081 | ❌ | Lifecycle, SLA, escalation, rule-based triage, scheduled jobs |
+| `servicio-agente-triaje` | Business | Spring Boot, Spring AI, Resilience4j | 8082 | ❌ | AI agent, tool calling, resilience against the LLM API |
+| `postgres` | Data | PostgreSQL | 5432 | ❌ | Relational persistence |
+| `redis` | Data | Redis | 6379 | ❌ | Cache, rate limiting, event bus (Streams) |
+| Anthropic API | External AI | SaaS | 443 | — | LLM inference |
 
-### 6.6 Protocoles de communication
+### 6.6 Communication protocols
 
-| Source → Destination | Protocole | Mode | Format | Usage |
+| Source → Destination | Protocol | Mode | Format | Usage |
 |---|---|---|---|---|
-| Client → `api-gateway` | HTTPS | Synchrone | REST / JSON | Toutes les requêtes externes |
-| `api-gateway` → services métier | HTTP | Synchrone | REST / JSON | Routage via `lb://` (Eureka) |
-| `servicio-tickets` → Redis Streams | RESP | **Asynchrone** | Événement JSON | Publication de `ticket.creado` |
-| Redis Streams → `servicio-agente-triaje` | RESP | **Asynchrone** | Événement JSON | Consommation par groupe de consommateurs |
-| `servicio-agente-triaje` → `servicio-tickets` | HTTP | Synchrone | REST / JSON | Outils de l'agent + enregistrement du tri |
-| `servicio-agente-triaje` → Anthropic | HTTPS | Synchrone | JSON (Messages API) | Inférence du triage |
-| Services → PostgreSQL | JDBC | Synchrone | SQL | Persistance |
-| Services → `config-server` | HTTP | Au démarrage | JSON / YAML | Lecture de la configuration |
-| Services → `discovery-server` | HTTP | Périodique | JSON | Enregistrement et heartbeat |
+| Customer → `api-gateway` | HTTPS | Synchronous | REST / JSON | All external requests |
+| `api-gateway` → business services | HTTP | Synchronous | REST / JSON | Routing via `lb://` (Eureka) |
+| `servicio-tickets` → Redis Streams | RESP | **Asynchronous** | JSON event | Publishing `ticket.creado` |
+| Redis Streams → `servicio-agente-triaje` | RESP | **Asynchronous** | JSON event | Consumed by consumer group |
+| `servicio-agente-triaje` → `servicio-tickets` | HTTP | Synchronous | REST / JSON | Agent tools + recording the triage |
+| `servicio-agente-triaje` → Anthropic | HTTPS | Synchronous | JSON (Messages API) | Triage inference |
+| Services → PostgreSQL | JDBC | Synchronous | SQL | Persistence |
+| Services → `config-server` | HTTP | At startup | JSON / YAML | Reading configuration |
+| Services → `discovery-server` | HTTP | Periodic | JSON | Registration and heartbeat |
 
-### 6.7 Stockage des données
+### 6.7 Data storage
 
-| Stockage | Propriétaire | Contenu principal | Persistance |
+| Storage | Owner | Main content | Persistence |
 |---|---|---|---|
-| PostgreSQL — schéma `tickets` | `servicio-tickets` | `ticket`, `historial_estado`, `triaje`, `respuesta` | Permanente (volume Docker) |
-| PostgreSQL — schéma `agente` | `servicio-agente-triaje` | `llamada_llm` : fournisseur, modèle, tokens, latence, succès/échec (RN-07) | Permanente (volume Docker) |
-| Redis — `ticket-events` | `servicio-tickets` (producteur) | Événements `ticket.creado` | Jusqu'à acquittement (`XACK`) |
-| Redis — cache des tris | `servicio-agente-triaje` | Résultat du tri indexé par empreinte du texte (doublons, ex. panne massive) | Temporaire (TTL) |
-| Redis — rate limiting | `api-gateway` | Compteurs de requêtes par client | Temporaire |
+| PostgreSQL — `tickets` schema | `servicio-tickets` | `ticket`, `historial_estado`, `triaje`, `respuesta` | Permanent (Docker volume) |
+| PostgreSQL — `agente` schema | `servicio-agente-triaje` | `llamada_llm`: provider, model, tokens, latency, success/failure (RN-07) | Permanent (Docker volume) |
+| Redis — `ticket-events` | `servicio-tickets` (producer) | `ticket.creado` events | Until acknowledged (`XACK`) |
+| Redis — triage cache | `servicio-agente-triaje` | Triage result indexed by a text fingerprint (duplicates, e.g. a mass outage) | Temporary (TTL) |
+| Redis — rate limiting | `api-gateway` | Per-client request counters | Temporary |
 
-> Une seule instance PostgreSQL avec **un schéma par service** : l'isolation logique respecte le principe *database per service* tout en limitant la consommation de ressources.
+> A single PostgreSQL instance with **one schema per service**: logical isolation respects the *database per service* principle while limiting resource consumption.
 
-### 6.8 Résilience et sécurité
+### 6.8 Resilience and security
 
-| Aspect | Mesure |
+| Aspect | Measure |
 |---|---|
-| Panne de l'API Anthropic | Circuit breaker Resilience4j (`CLOSED` → `OPEN` → `HALF_OPEN`) + timeout et retry configurables |
-| Panne persistante de l'IA | Tri par règles + état `EN_ATTENTE_DE_TRI` + nouvel essai planifié (RN-06) |
-| Panne du service agent | Événements conservés dans le stream Redis jusqu'au redémarrage |
-| Surcharge / abus | Rate limiting au gateway (Redis) |
-| Secrets | `ANTHROPIC_API_KEY` et mots de passe en variables d'environnement, jamais dans Git (`.env` dans `.gitignore`) |
-| Surface d'exposition | Seul `api-gateway` publie un port ; les autres services sont uniquement sur le réseau interne |
-| Supervision | Spring Boot Actuator (`/actuator/health`) sur chaque service — base de l'observabilité du Hito 5 |
+| Anthropic API outage | Resilience4j circuit breaker (`CLOSED` → `OPEN` → `HALF_OPEN`) + configurable timeout and retry |
+| Persistent AI outage | Rule-based triage + `PENDIENTE_TRIAJE` state + scheduled retry (RN-06) |
+| Agent service outage | Events kept in the Redis stream until restart |
+| Overload / abuse | Rate limiting at the gateway (Redis) |
+| Secrets | `ANTHROPIC_API_KEY` and passwords as environment variables, never in Git (`.env` in `.gitignore`) |
+| Exposure surface | Only `api-gateway` publishes a port; the other services are reachable only on the internal network |
+| Monitoring | Spring Boot Actuator (`/actuator/health`) on every service — the basis for Hito 5's observability |
 
-### 6.9 Décisions d'architecture
+### 6.9 Architecture decisions
 
-| Décision | Alternatives considérées | Justification |
+| Decision | Alternatives considered | Rationale |
 |---|---|---|
-| **Redis Streams** comme bus d'événements | RabbitMQ, Kafka | Redis est déjà présent (cache, rate limiting) : un composant de moins à exploiter ; volume d'événements modeste |
-| **Un PostgreSQL, un schéma par service** | Une instance par service | Isolation logique suffisante pour le projet, consommation mémoire réduite |
-| **Tri asynchrone** | Appel REST synchrone gateway → agent | Latence LLM élevée et variable ; absorbe les pics de tickets |
-| **Eureka + Config Server** | Découverte et configuration natives de Kubernetes | Indépendant de la plateforme de déploiement ; à réévaluer au Hito 3 (Spring Cloud Kubernetes) |
-| **Un seul fournisseur LLM (Anthropic)** | Deux fournisseurs avec basculement (Ollama local + Anthropic) | Simplicité pour le MVP ; l'interface `ProveedorLlm` (voir implémentation) reste conçue pour ajouter un second fournisseur si le besoin de continuité de service se confirme |
+| **Redis Streams** as the event bus | RabbitMQ, Kafka | Redis is already present (cache, rate limiting): one fewer component to operate; modest event volume |
+| **One PostgreSQL instance, one schema per service** | One instance per service | Logical isolation is sufficient for the project, lower memory footprint |
+| **Asynchronous triage** | Synchronous REST call gateway → agent | LLM latency is high and variable; absorbs ticket spikes |
+| **Eureka + Config Server** | Kubernetes-native discovery and configuration | Independent of the deployment platform; to be reassessed in Hito 3 (Spring Cloud Kubernetes) |
+| **A single LLM provider (Anthropic)** | Two providers with failover (local Ollama + Anthropic) | Simplicity for the MVP; the `ProveedorLlm` interface (see implementation) is still designed to accommodate a second provider if the need for service continuity is confirmed |
 
-## 7. Spécification de l'API REST
+## 7. REST API specification
 
-### 7.1 Conventions générales
+### 7.1 General conventions
 
-| Élément | Convention |
+| Element | Convention |
 |---|---|
-| **URL de base (externe)** | `http://localhost:8080/api/v1` — toutes les requêtes externes passent par `api-gateway` |
-| **Versionnement** | Dans le chemin (`/api/v1`) ; une évolution incompatible donnera `/api/v2` |
-| **Format** | JSON (`Content-Type: application/json`), encodage UTF-8 |
-| **Dates** | ISO 8601 en UTC (`2026-10-13T14:05:00Z`) |
-| **Identifiants** | UUID |
-| **Pagination** | `?page=0&size=20` ; la réponse contient `contenido`, `pagina`, `tamano`, `totalElementos` |
-| **Erreurs** | Format standard *Problem Details* (RFC 9457, `application/problem+json`), pris en charge nativement par Spring Boot |
-| **Documentation vivante** | Générée par **springdoc-openapi** : Swagger UI sur `/swagger-ui.html`, contrat OpenAPI sur `/v3/api-docs` |
-| **Authentification** | Hors périmètre du MVP ; l'identifiant du client est transmis dans le corps de la requête |
+| **Base URL (external)** | `http://localhost:8080/api/v1` — all external requests go through `api-gateway` |
+| **Versioning** | In the path (`/api/v1`); a breaking change will produce `/api/v2` |
+| **Format** | JSON (`Content-Type: application/json`), UTF-8 encoding |
+| **Dates** | ISO 8601 in UTC (`2026-10-13T14:05:00Z`) |
+| **Identifiers** | UUID |
+| **Pagination** | `?page=0&size=20`; the response contains `contenido`, `pagina`, `tamano`, `totalElementos` |
+| **Errors** | Standard *Problem Details* format (RFC 9457, `application/problem+json`), natively supported by Spring Boot |
+| **Living documentation** | Generated by **springdoc-openapi**: Swagger UI at `/swagger-ui.html`, OpenAPI contract at `/v3/api-docs` |
+| **Authentication** | Out of scope for the MVP; the customer ID is passed in the request body |
 
-**Routage du gateway :** `api-gateway` retire le préfixe `/api/v1` avant de transmettre la requête.
+**Gateway routing:** `api-gateway` strips the `/api/v1` prefix before forwarding the request.
 
-| Chemin externe | Service cible | Chemin interne |
+| External path | Target service | Internal path |
 |---|---|---|
 | `/api/v1/tickets/**` | `servicio-tickets` | `/tickets/**` |
 | `/api/v1/triaje/**` | `servicio-agente-triaje` | `/triaje/**` |
 
-Les chemins `/internal/**` ne sont **jamais routés** par le gateway : ils ne sont accessibles que depuis le réseau Docker interne.
+`/internal/**` paths are **never routed** by the gateway: they are only reachable from the internal Docker network.
 
-### 7.2 Valeurs énumérées
+### 7.2 Enumerated values
 
-| Champ | Valeurs possibles |
+| Field | Possible values |
 |---|---|
-| `estado` | `NOUVEAU`, `EN_ATTENTE_DE_TRI`, `TRIE`, `EN_COURS`, `RESOLU`, `FERME` (RN-01) |
-| `prioridad` | `CRITIQUE`, `HAUTE`, `MOYENNE`, `BASSE` (RN-02) |
-| `categoria` | `INCIDENT`, `FACTURATION`, `COMPTE`, `QUESTION`, `AUTRE` |
-| `modo` (du tri) | `IA` (tri par LLM), `REGLAS` (tri de secours par mots-clés) |
-| `proveedor` | `ANTHROPIC`, `NINGUNO` (tri par règles) |
+| `estado` | `NUEVO`, `PENDIENTE_TRIAJE`, `TRIADO`, `EN_CURSO`, `RESUELTO`, `CERRADO` (RN-01) |
+| `prioridad` | `CRITICA`, `ALTA`, `MEDIA`, `BAJA` (RN-02) |
+| `categoria` | `INCIDENTE`, `FACTURACION`, `CUENTA`, `PREGUNTA`, `OTRO` |
+| `modo` (triage) | `IA` (LLM triage), `REGLAS` (rule-based fallback triage) |
+| `proveedor` | `ANTHROPIC`, `NINGUNO` (rule-based triage) |
 
-### 7.3 Vue d'ensemble des endpoints
+### 7.3 Endpoint overview
 
-#### API publique — `servicio-tickets` (via le gateway)
+#### Public API — `servicio-tickets` (via the gateway)
 
-| Verbe | Route | Description | Cas d'utilisation | Réponses |
+| Verb | Route | Description | Use case | Responses |
 |---|---|---|---|---|
-| `POST` | `/api/v1/tickets` | Créer un ticket | CU-01 | `201`, `400` |
-| `GET` | `/api/v1/tickets` | Lister les tickets (filtres : `estado`, `prioridad`, `categoria`, `escalado`, `revisionManual`, `clienteId`) | CU-02, CU-04 | `200` |
-| `GET` | `/api/v1/tickets/{id}` | Consulter un ticket, son tri et ses échéances SLA | CU-02 | `200`, `404` |
-| `GET` | `/api/v1/tickets/{id}/historial` | Historique des changements d'état | CU-02 | `200`, `404` |
-| `PATCH` | `/api/v1/tickets/{id}/triaje` | Corriger le tri proposé par l'IA (catégorie, priorité) | CU-04 | `200`, `404`, `409` |
-| `POST` | `/api/v1/tickets/{id}/respuesta` | Envoyer une réponse validée par un agent humain | CU-04 | `201`, `404`, `409` |
-| `PATCH` | `/api/v1/tickets/{id}/estado` | Changer l'état du ticket | CU-05 | `200`, `404`, `409` |
-| `POST` | `/api/v1/tickets/{id}/reapertura` | Rouvrir un ticket résolu (≤ 7 jours) | CU-09 *(extension)* | `200`, `404`, `409` |
+| `POST` | `/api/v1/tickets` | Create a ticket | CU-01 | `201`, `400` |
+| `GET` | `/api/v1/tickets` | List tickets (filters: `estado`, `prioridad`, `categoria`, `escalado`, `revisionManual`, `clienteId`) | CU-02, CU-04 | `200` |
+| `GET` | `/api/v1/tickets/{id}` | View a ticket, its triage and SLA deadlines | CU-02 | `200`, `404` |
+| `GET` | `/api/v1/tickets/{id}/historial` | History of state changes | CU-02 | `200`, `404` |
+| `PATCH` | `/api/v1/tickets/{id}/triaje` | Correct the AI's proposed triage (category, priority) | CU-04 | `200`, `404`, `409` |
+| `POST` | `/api/v1/tickets/{id}/respuesta` | Send a reply validated by a human agent | CU-04 | `201`, `404`, `409` |
+| `PATCH` | `/api/v1/tickets/{id}/estado` | Change the ticket's state | CU-05 | `200`, `404`, `409` |
+| `POST` | `/api/v1/tickets/{id}/reapertura` | Reopen a resolved ticket (≤ 7 days) | CU-09 *(extension)* | `200`, `404`, `409` |
 
-#### API publique — `servicio-agente-triaje` (via le gateway)
+#### Public API — `servicio-agente-triaje` (via the gateway)
 
-| Verbe | Route | Description | Cas d'utilisation | Réponses |
+| Verb | Route | Description | Use case | Responses |
 |---|---|---|---|---|
-| `GET` | `/api/v1/triaje/proveedor` | État du fournisseur LLM (Anthropic) et de son circuit breaker | CU-08 | `200` |
-| `POST` | `/api/v1/triaje/tickets/{id}/reintento` | Relancer manuellement le tri IA d'un ticket | CU-07 | `202`, `404`, `409` |
-| `GET` | `/api/v1/triaje/metricas` | Consommation de l'IA : appels, tokens, latence, taux d'échec (`?desde=&hasta=`) | CU-08 *(extension)* | `200` |
+| `GET` | `/api/v1/triaje/proveedor` | LLM provider status (Anthropic) and its circuit breaker | CU-08 | `200` |
+| `POST` | `/api/v1/triaje/tickets/{id}/reintento` | Manually retry a ticket's AI triage | CU-07 | `202`, `404`, `409` |
+| `GET` | `/api/v1/triaje/metricas` | AI consumption: calls, tokens, latency, failure rate (`?desde=&hasta=`) | CU-08 *(extension)* | `200` |
 
-#### API interne — `servicio-tickets` (réseau interne uniquement)
+#### Internal API — `servicio-tickets` (internal network only)
 
-Endpoints utilisés par l'agent IA, soit comme **outils** (*tool calling*), soit pour enregistrer le résultat.
+Endpoints used by the AI agent, either as **tools** (*tool calling*) or to record the result.
 
-| Verbe | Route | Appelant | Description | Réponses |
+| Verb | Route | Caller | Description | Responses |
 |---|---|---|---|---|
-| `GET` | `/internal/tickets/{id}` | Agent IA | Lire le ticket à trier | `200`, `404` |
-| `GET` | `/internal/clientes/{clienteId}/historial` | Agent IA (outil `obtenerHistorialCliente`) | Derniers tickets du client et leur résolution | `200` |
-| `PUT` | `/internal/tickets/{id}/triaje` | Agent IA | Enregistrer le résultat du tri (IA ou échec → règles) | `200`, `404`, `409` |
+| `GET` | `/internal/tickets/{id}` | AI agent | Read the ticket to be triaged | `200`, `404` |
+| `GET` | `/internal/clientes/{clienteId}/historial` | AI agent (`obtenerHistorialCliente` tool) | Customer's latest tickets and their resolution | `200` |
+| `PUT` | `/internal/tickets/{id}/triaje` | AI agent | Record the triage result (AI or fallback → rules) | `200`, `404`, `409` |
 
-#### Contrat asynchrone — Redis Streams
+#### Asynchronous contract — Redis Streams
 
-| Stream | Événement | Producteur | Consommateur (groupe) |
+| Stream | Event | Producer | Consumer (group) |
 |---|---|---|---|
-| `ticket-events` | `ticket.creado` | `servicio-tickets` | `servicio-agente-triaje` (groupe `triaje`) |
+| `ticket-events` | `ticket.creado` | `servicio-tickets` | `servicio-agente-triaje` (`triaje` group) |
 
-#### Endpoints techniques (non exposés)
+#### Technical endpoints (not exposed)
 
-`GET /actuator/health` sur chaque service : utilisé pour la supervision et les *health checks* des conteneurs.
+`GET /actuator/health` on every service: used for monitoring and container *health checks*.
 
-### 7.4 Détail des endpoints principaux
+### 7.4 Key endpoint details
 
-#### `POST /api/v1/tickets` — Créer un ticket (CU-01)
+#### `POST /api/v1/tickets` — Create a ticket (CU-01)
 
-Requête :
+Request:
 
 ```json
 {
   "clienteId": "c2a9f1d4-7b3e-4c1a-9e55-0d2f8b6a4e10",
-  "titulo": "Impossible de me connecter à mon compte",
-  "descripcion": "Depuis ce matin, j'obtiens l'erreur 500 après avoir saisi mon mot de passe. Toute l'équipe est bloquée."
+  "titulo": "Can't log into my account",
+  "descripcion": "Since this morning I get a 500 error right after entering my password. The whole team is blocked."
 }
 ```
 
-Réponse `201 Created` (en-tête `Location: /api/v1/tickets/8b1d3c52-4e7a-4f0e-9a51-2c7d9e6f1a30`) :
+Response `201 Created` (header `Location: /api/v1/tickets/8b1d3c52-4e7a-4f0e-9a51-2c7d9e6f1a30`):
 
 ```json
 {
   "id": "8b1d3c52-4e7a-4f0e-9a51-2c7d9e6f1a30",
-  "estado": "NOUVEAU",
+  "estado": "NUEVO",
   "creadoEn": "2026-10-13T14:05:00Z"
 }
 ```
 
-Validation : `titulo` obligatoire (5 à 150 caractères), `descripcion` obligatoire (10 à 5 000 caractères), `clienteId` obligatoire.
-Effet de bord : publication de l'événement `ticket.creado` ; le tri se fait ensuite en arrière-plan.
+Validation: `titulo` required (5 to 150 characters), `descripcion` required (10 to 5,000 characters), `clienteId` required.
+Side effect: publishes the `ticket.creado` event; triage then happens in the background.
 
-#### `GET /api/v1/tickets/{id}` — Consulter un ticket (CU-02)
+#### `GET /api/v1/tickets/{id}` — View a ticket (CU-02)
 
-Réponse `200 OK` (après le tri par l'IA) :
+Response `200 OK` (after AI triage):
 
 ```json
 {
   "id": "8b1d3c52-4e7a-4f0e-9a51-2c7d9e6f1a30",
   "clienteId": "c2a9f1d4-7b3e-4c1a-9e55-0d2f8b6a4e10",
-  "titulo": "Impossible de me connecter à mon compte",
-  "descripcion": "Depuis ce matin, j'obtiens l'erreur 500 après avoir saisi mon mot de passe. Toute l'équipe est bloquée.",
-  "estado": "TRIE",
-  "categoria": "INCIDENT",
-  "prioridad": "CRITIQUE",
+  "titulo": "Can't log into my account",
+  "descripcion": "Since this morning I get a 500 error right after entering my password. The whole team is blocked.",
+  "estado": "TRIADO",
+  "categoria": "INCIDENTE",
+  "prioridad": "CRITICA",
   "escalado": false,
   "revisionManual": false,
   "sla": {
@@ -599,96 +597,96 @@ Réponse `200 OK` (après le tri par l'IA) :
     "modo": "IA",
     "proveedor": "ANTHROPIC",
     "confianza": 0.91,
-    "resumen": "Erreur 500 à la connexion bloquant toute une équipe depuis ce matin.",
-    "borradorRespuesta": "Bonjour, nous avons bien identifié le problème de connexion et notre équipe technique est mobilisée…"
+    "resumen": "A 500 login error is blocking an entire team since this morning.",
+    "borradorRespuesta": "Hello, we have identified the login issue and our technical team is already on it…"
   },
   "creadoEn": "2026-10-13T14:05:00Z",
   "actualizadoEn": "2026-10-13T14:05:07Z"
 }
 ```
 
-> Le brouillon (`borradorRespuesta`) n'est **jamais** envoyé automatiquement au client (RN-05).
+> The draft (`borradorRespuesta`) is **never** sent to the customer automatically (RN-05).
 
-#### `PATCH /api/v1/tickets/{id}/triaje` — Corriger le tri (CU-04)
+#### `PATCH /api/v1/tickets/{id}/triaje` — Correct the triage (CU-04)
 
-Requête (agent de support) :
+Request (support agent):
 
 ```json
 {
-  "categoria": "COMPTE",
-  "prioridad": "HAUTE",
-  "motivo": "Problème limité à un seul compte, pas un incident global."
+  "categoria": "CUENTA",
+  "prioridad": "ALTA",
+  "motivo": "Limited to a single account, not a global incident."
 }
 ```
 
-Réponse `200 OK` : le ticket complet, avec `triaje.corregidoPorHumano: true`. Les délais SLA sont recalculés selon la nouvelle priorité.
+Response `200 OK`: the full ticket, with `triaje.corregidoPorHumano: true`. SLA deadlines are recomputed for the new priority.
 
-#### `POST /api/v1/tickets/{id}/respuesta` — Envoyer une réponse validée (CU-04)
+#### `POST /api/v1/tickets/{id}/respuesta` — Send a validated reply (CU-04)
 
-Requête :
+Request:
 
 ```json
 {
   "agenteId": "a71e0c3b-2f4d-4e8a-b6c9-5d1e3f7a9b20",
-  "texto": "Bonjour, nous avons réinitialisé votre session. Pouvez-vous réessayer de vous connecter ?",
+  "texto": "Hello, we've reset your session. Could you try logging in again?",
   "basadoEnBorrador": true
 }
 ```
 
-Réponse `201 Created` :
+Response `201 Created`:
 
 ```json
 {
   "respuestaId": "f3b8a2d1-6c4e-4b7f-8a9d-1e2c3b4a5f60",
   "ticketId": "8b1d3c52-4e7a-4f0e-9a51-2c7d9e6f1a30",
-  "estado": "EN_COURS",
+  "estado": "EN_CURSO",
   "enviadaEn": "2026-10-13T14:20:00Z"
 }
 ```
 
-Règles : autorisé uniquement si le ticket est `TRIE` ou `EN_COURS`, sinon `409`. La première réponse arrête le chronomètre SLA de « première réponse ».
+Rules: only allowed if the ticket is `TRIADO` or `EN_CURSO`, otherwise `409`. The first reply stops the "first response" SLA clock.
 
-#### `PATCH /api/v1/tickets/{id}/estado` — Changer l'état (CU-05)
+#### `PATCH /api/v1/tickets/{id}/estado` — Change state (CU-05)
 
-Requête :
+Request:
 
 ```json
 {
-  "estado": "RESOLU",
-  "comentario": "Session réinitialisée, le client confirme que l'accès fonctionne."
+  "estado": "RESUELTO",
+  "comentario": "Session reset, the customer confirms access now works."
 }
 ```
 
-Réponse `200 OK` : le ticket complet avec son nouvel état.
+Response `200 OK`: the full ticket with its new state.
 
-Exemple d'erreur `409 Conflict` (transition non autorisée par RN-01) :
+Example `409 Conflict` error (transition not allowed by RN-01):
 
 ```json
 {
   "type": "https://triageai.example/errores/transicion-invalida",
-  "title": "Transition d'état non autorisée",
+  "title": "Invalid state transition",
   "status": 409,
-  "detail": "Impossible de passer de NOUVEAU à RESOLU.",
+  "detail": "Cannot move from NUEVO to RESUELTO.",
   "instance": "/api/v1/tickets/8b1d3c52-4e7a-4f0e-9a51-2c7d9e6f1a30/estado",
-  "transicionesPermitidas": ["TRIE", "EN_ATTENTE_DE_TRI"]
+  "transicionesPermitidas": ["TRIADO", "PENDIENTE_TRIAJE"]
 }
 ```
 
-#### `PUT /internal/tickets/{id}/triaje` — Enregistrer le résultat du tri (interne)
+#### `PUT /internal/tickets/{id}/triaje` — Record the triage result (internal)
 
-Cas 1 — tri réussi par l'IA :
+Case 1 — AI triage succeeded:
 
 ```json
 {
   "modo": "IA",
-  "categoria": "INCIDENT",
-  "prioridad": "CRITIQUE",
+  "categoria": "INCIDENTE",
+  "prioridad": "CRITICA",
   "confianza": 0.91,
-  "resumen": "Erreur 500 à la connexion bloquant toute une équipe depuis ce matin.",
-  "borradorRespuesta": "Bonjour, nous avons bien identifié le problème…",
+  "resumen": "A 500 login error is blocking an entire team since this morning.",
+  "borradorRespuesta": "Hello, we have identified the issue…",
   "trazabilidad": {
     "proveedor": "ANTHROPIC",
-    "modelo": "<modèle configuré>",
+    "modelo": "<configured model>",
     "tokensEntrada": 812,
     "tokensSalida": 164,
     "latenciaMs": 6430,
@@ -697,7 +695,7 @@ Cas 1 — tri réussi par l'IA :
 }
 ```
 
-Cas 2 — l'API Anthropic reste indisponible après les réessais :
+Case 2 — the Anthropic API remains unavailable after retries:
 
 ```json
 {
@@ -707,25 +705,25 @@ Cas 2 — l'API Anthropic reste indisponible après les réessais :
 }
 ```
 
-Réponse `200 OK`. Le service applique RN-04 (révision manuelle si `confianza < 0,7`) ou RN-06 (tri par mots-clés, état `EN_ATTENTE_DE_TRI`). Les valeurs `tokens` et `latenciaMs` alimentent RN-07.
+Response `200 OK`. The service applies RN-04 (manual review if `confianza < 0.7`) or RN-06 (keyword-based triage, `PENDIENTE_TRIAJE` state). The `tokens` and `latenciaMs` values feed RN-07.
 
-#### `GET /internal/clientes/{clienteId}/historial` — Outil de l'agent
+#### `GET /internal/clientes/{clienteId}/historial` — Agent tool
 
-Réponse `200 OK` (5 derniers tickets) :
+Response `200 OK` (last 5 tickets):
 
 ```json
 {
   "clienteId": "c2a9f1d4-7b3e-4c1a-9e55-0d2f8b6a4e10",
   "totalTickets": 7,
   "ticketsRecientes": [
-    { "id": "1c7e…", "titulo": "Facture en double", "categoria": "FACTURATION", "prioridad": "MOYENNE", "estado": "FERME", "creadoEn": "2026-09-28T09:12:00Z" }
+    { "id": "1c7e…", "titulo": "Duplicate invoice", "categoria": "FACTURACION", "prioridad": "MEDIA", "estado": "CERRADO", "creadoEn": "2026-09-28T09:12:00Z" }
   ]
 }
 ```
 
-#### `GET /api/v1/triaje/proveedor` — État du fournisseur LLM
+#### `GET /api/v1/triaje/proveedor` — LLM provider status
 
-Réponse `200 OK` :
+Response `200 OK`:
 
 ```json
 {
@@ -736,7 +734,7 @@ Réponse `200 OK` :
 }
 ```
 
-#### Événement `ticket.creado` (Redis Streams)
+#### `ticket.creado` event (Redis Streams)
 
 ```json
 {
@@ -748,20 +746,20 @@ Réponse `200 OK` :
 }
 ```
 
-L'événement ne transporte que l'identifiant : l'agent lit le contenu à jour via `GET /internal/tickets/{id}`. Le champ `version` permet de faire évoluer le format sans casser le consommateur.
+The event only carries the identifier: the agent reads the current content through `GET /internal/tickets/{id}`. The `version` field allows the format to evolve without breaking the consumer.
 
-### 7.5 Codes de réponse utilisés
+### 7.5 Response codes used
 
-| Code | Signification | Exemple |
+| Code | Meaning | Example |
 |---|---|---|
-| `200 OK` | Lecture ou modification réussie | `GET /tickets/{id}` |
-| `201 Created` | Ressource créée (en-tête `Location`) | `POST /tickets` |
-| `202 Accepted` | Traitement accepté, exécuté en arrière-plan | `POST /triaje/tickets/{id}/reintento` |
-| `400 Bad Request` | Données invalides (validation) | `titulo` manquant |
-| `404 Not Found` | Ressource inexistante | identifiant inconnu |
-| `409 Conflict` | Opération incompatible avec l'état actuel | transition `NOUVEAU → RESOLU` |
-| `429 Too Many Requests` | Limite de débit dépassée (gateway) | trop de requêtes d'un même client |
-| `503 Service Unavailable` | Service cible indisponible | service métier arrêté |
+| `200 OK` | Successful read or update | `GET /tickets/{id}` |
+| `201 Created` | Resource created (`Location` header) | `POST /tickets` |
+| `202 Accepted` | Processing accepted, runs in the background | `POST /triaje/tickets/{id}/reintento` |
+| `400 Bad Request` | Invalid data (validation) | missing `titulo` |
+| `404 Not Found` | Resource does not exist | unknown identifier |
+| `409 Conflict` | Operation incompatible with current state | `NUEVO → RESUELTO` transition |
+| `429 Too Many Requests` | Rate limit exceeded (gateway) | too many requests from the same client |
+| `503 Service Unavailable` | Target service unavailable | business service down |
 
 ## 8. Project Management
 
