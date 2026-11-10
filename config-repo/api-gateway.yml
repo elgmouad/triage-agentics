@@ -7,3 +7,6 @@ gateway:
   rate-limit:
     replenish-rate: 10   # requests per second
     burst-capacity: 20
+  # Proxies in front of the gateway whose X-Forwarded-For can be trusted
+  # (0 locally: the gateway is the edge; set it when a cloud load balancer is added)
+  proxies-confianza: 0
