@@ -67,7 +67,7 @@ class AgenteIntegracionTests {
     MockMvc mvc;
 
     @Test
-    void consumesAndAcknowledgesTicketCreatedEvents() {
+    void consumesAndAcknowledgesTicketCreatedEvents() throws InterruptedException {
         UUID ticketId = UUID.randomUUID();
 
         redis.opsForStream().add(StreamRecords.string(Map.of(
@@ -77,12 +77,11 @@ class AgenteIntegracionTests {
 
         verify(triaje, timeout(15_000)).triar(ticketId);
         // XACK happens right after triar() returns
-        verify(triaje, timeout(5_000)).triar(ticketId);
         long pendientes = 1;
         for (int i = 0; i < 50 && pendientes > 0; i++) {
             pendientes = redis.opsForStream().pending("ticket-events", "triaje").getTotalPendingMessages();
             if (pendientes > 0) {
-                try { Thread.sleep(100); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+                Thread.sleep(100);
             }
         }
         assertThat(pendientes).isZero();
