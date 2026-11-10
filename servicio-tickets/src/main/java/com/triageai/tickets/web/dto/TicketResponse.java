@@ -23,6 +23,7 @@ public record TicketResponse(
         Prioridad prioridad,
         boolean escalado,
         boolean revisionManual,
+        int intentosTriaje,
         Sla sla,
         TriajeVista triaje,
         Instant creadoEn,
@@ -49,7 +50,7 @@ public record TicketResponse(
                 tr.isCorregidoPorHumano());
         return new TicketResponse(t.getId(), t.getClienteId(), t.getTitulo(), t.getDescripcion(),
                 t.getEstado(), t.getCategoria(), t.getPrioridad(), t.isEscalado(), t.isRevisionManual(),
-                new Sla(t.getPrimeraRespuestaAntes(), t.getResolucionAntes()), triaje,
+                t.getIntentosTriaje(), new Sla(t.getPrimeraRespuestaAntes(), t.getResolucionAntes()), triaje,
                 t.getCreadoEn(), t.getActualizadoEn());
     }
 }
