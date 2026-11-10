@@ -1,24 +1,24 @@
 flowchart LR
-    subgraph CONS["Consommateurs (Consumidor)"]
-        PME["Entreprises clientes (PME)<br/>et leurs agents de support"]
-        CLI["Clients finaux<br/>qui créent des tickets"]
+    subgraph CONS["Consumers (Consumidor)"]
+        PME["Client companies (SMEs)<br/>and their support agents"]
+        CLI["End customers<br/>who create tickets"]
     end
 
-    subgraph PROV["Fournisseurs (Proveedor)"]
-        TAI["TriageAI<br/>fournisseur SaaS"]
-        IAAS["Fournisseur cloud public<br/>IaaS / PaaS"]
-        ANT["Anthropic<br/>API LLM"]
+    subgraph PROV["Providers (Proveedor)"]
+        TAI["TriageAI<br/>SaaS provider"]
+        IAAS["Public cloud provider<br/>IaaS / PaaS"]
+        ANT["Anthropic<br/>LLM API"]
     end
 
-    BRK["Intermédiaire (Intermediario)<br/>TriageAI : agrège IaaS + API LLM<br/>en un seul service pour la PME"]
-    AUD["Auditeur (Auditor)<br/>RGPD · sécurité · SLA"]
-    CAR["Opérateur réseau (Operador)<br/>FAI · réseau du fournisseur · Internet"]
+    BRK["Broker (Intermediario)<br/>TriageAI: aggregates IaaS + LLM API<br/>into a single service for the SME"]
+    AUD["Auditor<br/>GDPR · security · SLA"]
+    CAR["Carrier (Operador)<br/>ISP · provider's network · Internet"]
 
     CLI --> PME
-    PME -- "consomme le SaaS" --> BRK
+    PME -- "consumes the SaaS" --> BRK
     BRK --> TAI
-    TAI -- "s'exécute sur" --> IAAS
-    TAI -- "appelle" --> ANT
-    AUD -. "audite" .-> TAI
-    CAR -. "transporte" .-> PME
-    CAR -. "transporte" .-> ANT
+    TAI -- "runs on" --> IAAS
+    TAI -- "calls" --> ANT
+    AUD -. "audits" .-> TAI
+    CAR -. "carries" .-> PME
+    CAR -. "carries" .-> ANT

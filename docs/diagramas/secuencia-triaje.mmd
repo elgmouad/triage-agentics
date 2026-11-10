@@ -1,36 +1,36 @@
 sequenceDiagram
     autonumber
-    actor C as Client
+    actor C as Customer
     participant GW as api-gateway
     participant TK as servicio-tickets
     participant RD as Redis
     participant AG as servicio-agente-triaje
-    participant AN as API Anthropic
+    participant AN as Anthropic API
 
     C->>GW: POST /api/v1/tickets
     GW->>TK: POST /tickets
-    TK->>TK: validation · état NOUVEAU · calcul des échéances SLA
+    TK->>TK: validation · NUEVO state · SLA deadlines computed
     TK->>RD: XADD ticket-events {ticket.creado}
-    TK-->>GW: 201 Created {id, estado: NOUVEAU}
+    TK-->>GW: 201 Created {id, estado: NUEVO}
     GW-->>C: 201 Created
 
     RD-->>AG: XREADGROUP → ticket.creado
-    alt Circuit Anthropic fermé (CLOSED)
-        AG->>AN: POST /v1/messages (ticket + définition des outils)
-        AN-->>AG: demande d'outil : obtenerHistorialCliente
+    alt Anthropic circuit closed (CLOSED)
+        AG->>AN: POST /v1/messages (ticket + tool definitions)
+        AN-->>AG: tool call: obtenerHistorialCliente
         AG->>TK: GET /internal/clientes/{id}/historial
-        TK-->>AG: historique du client
-        AG->>AN: POST /v1/messages (résultat de l'outil)
+        TK-->>AG: customer history
+        AG->>AN: POST /v1/messages (tool result)
         AN-->>AG: JSON {categoria, prioridad, resumen, confianza, borrador}
-    else Anthropic en échec (timeout · erreur · JSON invalide) ou circuit ouvert
-        AG->>AG: réessais épuisés (Resilience4j)
+    else Anthropic failing (timeout · error · invalid JSON) or circuit open
+        AG->>AG: retries exhausted (Resilience4j)
     end
 
-    alt Tri obtenu
-        AG->>TK: PUT /internal/tickets/{id}/triaje {modo: IA, ..., trazabilidad}
-        TK->>TK: NOUVEAU → TRIÉ · révision manuelle si confiance < 0,7
-    else L'API Anthropic reste indisponible
+    alt Triage obtained
+        AG->>TK: PUT /internal/tickets/{id}/triaje {modo: IA, ..., traceability}
+        TK->>TK: NUEVO → TRIADO · manual review if confidence < 0.7
+    else Anthropic API still unavailable
         AG->>TK: PUT /internal/tickets/{id}/triaje {modo: REGLAS}
-        TK->>TK: tri par mots-clés · NOUVEAU → EN_ATTENTE_DE_TRI
+        TK->>TK: keyword-based triage · NUEVO → PENDIENTE_TRIAJE
     end
-    AG->>RD: XACK (événement traité)
+    AG->>RD: XACK (event processed)
