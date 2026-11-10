@@ -1,0 +1,24 @@
+flowchart LR
+    subgraph CONS["Consommateurs (Consumidor)"]
+        PME["Entreprises clientes (PME)<br/>et leurs agents de support"]
+        CLI["Clients finaux<br/>qui créent des tickets"]
+    end
+
+    subgraph PROV["Fournisseurs (Proveedor)"]
+        TAI["TriageAI<br/>fournisseur SaaS"]
+        IAAS["Fournisseur cloud public<br/>IaaS / PaaS"]
+        ANT["Anthropic<br/>API LLM"]
+    end
+
+    BRK["Intermédiaire (Intermediario)<br/>TriageAI : agrège IaaS + API LLM<br/>en un seul service pour la PME"]
+    AUD["Auditeur (Auditor)<br/>RGPD · sécurité · SLA"]
+    CAR["Opérateur réseau (Operador)<br/>FAI · réseau du fournisseur · Internet"]
+
+    CLI --> PME
+    PME -- "consomme le SaaS" --> BRK
+    BRK --> TAI
+    TAI -- "s'exécute sur" --> IAAS
+    TAI -- "appelle" --> ANT
+    AUD -. "audite" .-> TAI
+    CAR -. "transporte" .-> PME
+    CAR -. "transporte" .-> ANT
