@@ -763,9 +763,68 @@ L'événement ne transporte que l'identifiant : l'agent lit le contenu à jour v
 | `429 Too Many Requests` | Limite de débit dépassée (gateway) | trop de requêtes d'un même client |
 | `503 Service Unavailable` | Service cible indisponible | service métier arrêté |
 
-## 8. Gestion du projet
+## 8. Project Management
 
-> 🚧 *À compléter* — stratégie de branches, convention de commits, GitHub Projects, user stories, templates.
+### 8.1 Branching strategy
+
+The repository follows a lightweight **trunk-based** workflow: `main` is always kept deployable, and every change — a feature, a fix, a refactor, documentation — is developed on a short-lived branch and merged back through a **Pull Request**.
+
+Branches are named `<type>/<short-description>`, using the same `<type>` vocabulary as commits (section 8.2):
+
+| Branch | Purpose |
+|---|---|
+| `chore/templates-github` | Added the Issue and Pull Request templates |
+| `docs/backlog-inicial` | Initial backlog (16 user stories) |
+| `refactor/retirer-ollama` | Removed the Ollama provider, kept Anthropic as the single LLM provider |
+
+Once a Pull Request is reviewed (self-reviewed in a one-person project) and its diff checked against the acceptance criteria of the linked issue, it is merged into `main`; the source branch can then be deleted.
+
+### 8.2 Commit convention
+
+Commits follow the **Conventional Commits** convention (`<type>: <description>`), which keeps the history readable and could later drive automatic changelog generation:
+
+| Type | Used for |
+|---|---|
+| `feat` | A new feature or capability |
+| `fix` | A bug fix |
+| `docs` | Documentation only (README, backlog, diagrams) |
+| `refactor` | A code or design change with no behavior change for the user |
+| `test` | Adding or correcting tests |
+| `chore` | Tooling, configuration, templates, dependencies |
+
+Example from this repository: `refactor: retira Ollama; servicio-agente-triaje usa únicamente la API de Anthropic`.
+
+### 8.3 Issue and Pull Request templates
+
+Two templates under `.github/` standardize contributions:
+
+- **`.github/ISSUE_TEMPLATE/user_story.md`** — every user story is filed with the same structure: *Historia de usuario* (role / action / benefit), *Contexto* (related use case, business rule, affected service), *Criterios de aceptación* (Given/When/Then), *Tareas técnicas* and *Definición de hecho*. This keeps every story independently testable and traceable back to a use case (CU-XX) and a business rule (RN-XX) from sections 2-3.
+- **`.github/PULL_REQUEST_TEMPLATE.md`** — reserved for the checklist a contributor fills in before requesting review (linked issue, summary of the change, test evidence); it will be completed once the team starts actively using Pull Requests beyond the solo-author workflow of Hito 1.
+
+### 8.4 Backlog: user stories, labels and milestones
+
+The functional backlog is derived directly from the use cases in section 3 (CU-01 to CU-10) and kept as 16 Markdown files under `docs/backlog/` (`HU-01.md` … `HU-16.md`), each following the issue template above. Two labels classify every story:
+
+- An **area** label — `area:tickets`, `area:agente-ia`, `area:infraestructura` or `area:documentacion` — identifying which microservice or concern it belongs to.
+- Optionally **`mvp`**, marking a story required for the minimum viable product delivered across Hitos 1-2.
+
+Stories are grouped into five **Milestones**, one per Hito of the course:
+
+| Milestone | Scope |
+|---|---|
+| Hito 1 | Project definition, domain model, reference architecture |
+| Hito 2 | Cloud-native packaging, local environment, continuous integration |
+| Hito 3 | Infrastructure as Code provisioning, Reconciler Pattern |
+| Hito 4 | Continuous deployment, automated reconciliation, security |
+| Hito 5 | Observability, load testing, final release |
+
+### 8.5 GitHub Projects board
+
+All 16 stories are tracked on a single GitHub Projects board, **"TriageAI — Backlog"**, linked to the repository. Issues move through a `Todo → In Progress → Done` status as work advances, and the board can be grouped by Milestone to review one Hito at a time.
+
+### 8.6 Automation script
+
+`scripts/crear-backlog.sh` uses the **GitHub CLI** (`gh`) to set this up in one idempotent run (safe to re-execute: it skips anything that already exists): it creates the labels, the five Milestones, the Projects board, and then opens one Issue per file in `docs/backlog/`, attaching it to the board. It requires `gh auth login` plus `gh auth refresh -s project` (the `project` scope is needed to write to GitHub Projects) and is run once from the repository root with `bash scripts/crear-backlog.sh`.
 
 ## 9. État du projet
 
