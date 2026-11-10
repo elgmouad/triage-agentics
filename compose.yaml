@@ -1,0 +1,161 @@
+# ============================================================
+#  TriageAI — local environment (Hito 2)
+#
+#     cp .env.example .env        # then set the passwords (and the API key)
+#     docker compose up -d --build
+#     curl http://localhost:8080/api/v1/tickets
+#
+#  Only api-gateway publishes a port (README section 6.8). Startup order
+#  follows README section 6.3: data -> config-server -> discovery-server ->
+#  business services -> api-gateway, each step waiting for the previous
+#  one to be healthy.
+# ============================================================
+
+name: triageai
+
+# Settings shared by the Spring Boot services
+x-spring-env: &spring-env
+  CONFIG_SERVER_URL: http://config-server:8888
+  CONFIG_FAIL_FAST: "true"
+  EUREKA_URL: http://discovery-server:8761/eureka/
+  REDIS_HOST: redis
+  REDIS_PASSWORD: ${REDIS_PASSWORD:?set REDIS_PASSWORD in .env}
+  POSTGRES_HOST: postgres
+  POSTGRES_DB: ${POSTGRES_DB:-triageai}
+  POSTGRES_USER: ${POSTGRES_USER:-triageai}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+
+x-spring-service: &spring-service
+  restart: unless-stopped
+  deploy:
+    resources:
+      limits:
+        memory: 512m
+
+services:
+
+  # ---------------------------------------------------------- data
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-triageai}
+      POSTGRES_USER: ${POSTGRES_USER:-triageai}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks: [datos]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:8-alpine
+    restart: unless-stopped
+    # Append-only file: stream events survive a restart (no ticket is lost).
+    command: ["sh", "-c", "exec redis-server --appendonly yes --requirepass \"$$REDIS_PASSWORD\""]
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?set REDIS_PASSWORD in .env}
+      REDISCLI_AUTH: ${REDIS_PASSWORD:?set REDIS_PASSWORD in .env}
+    volumes:
+      - redis-data:/data
+    networks: [datos]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ---------------------------------------------------------- control plane
+  config-server:
+    <<: *spring-service
+    image: ${REGISTRY:-ghcr.io/elgmouad/triage-agentics}/config-server:${TAG:-dev}
+    build: ./config-server
+    environment:
+      CONFIG_REPO_LOCATION: file:/config-repo/
+    volumes:
+      - ./config-repo:/config-repo:ro
+    networks: [servicios]
+    deploy:
+      resources:
+        limits:
+          memory: 384m
+
+  discovery-server:
+    <<: *spring-service
+    image: ${REGISTRY:-ghcr.io/elgmouad/triage-agentics}/discovery-server:${TAG:-dev}
+    build: ./discovery-server
+    networks: [servicios]
+    depends_on:
+      config-server:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 384m
+
+  # ---------------------------------------------------------- business services
+  servicio-tickets:
+    <<: *spring-service
+    image: ${REGISTRY:-ghcr.io/elgmouad/triage-agentics}/servicio-tickets:${TAG:-dev}
+    build: ./servicio-tickets
+    environment:
+      <<: *spring-env
+      EUREKA_HOSTNAME: servicio-tickets
+    networks: [servicios, datos]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      config-server: { condition: service_healthy }
+      discovery-server: { condition: service_healthy }
+
+  servicio-agente-triaje:
+    <<: *spring-service
+    image: ${REGISTRY:-ghcr.io/elgmouad/triage-agentics}/servicio-agente-triaje:${TAG:-dev}
+    build: ./servicio-agente-triaje
+    environment:
+      <<: *spring-env
+      EUREKA_HOSTNAME: servicio-agente-triaje
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-not-configured}
+      LLM_MODELO: ${LLM_MODELO:-claude-opus-5-5}
+    # "salida" is the only network with Internet access: needed for the Anthropic API.
+    networks: [servicios, datos, salida]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      config-server: { condition: service_healthy }
+      discovery-server: { condition: service_healthy }
+
+  # ---------------------------------------------------------- edge
+  api-gateway:
+    <<: *spring-service
+    image: ${REGISTRY:-ghcr.io/elgmouad/triage-agentics}/api-gateway:${TAG:-dev}
+    build: ./api-gateway
+    environment:
+      <<: *spring-env
+      EUREKA_HOSTNAME: api-gateway
+    ports:
+      - "8080:8080"
+    networks: [publica, servicios, datos]
+    depends_on:
+      redis: { condition: service_healthy }
+      servicio-tickets: { condition: service_healthy }
+      servicio-agente-triaje: { condition: service_healthy }
+
+networks:
+  # Published port of the gateway only
+  publica:
+  # Service-to-service traffic (config, discovery, REST). No Internet access.
+  servicios:
+    internal: true
+  # PostgreSQL and Redis. No Internet access.
+  datos:
+    internal: true
+  # Outbound Internet for the AI agent (Anthropic API)
+  salida:
+
+volumes:
+  postgres-data:
+  redis-data:

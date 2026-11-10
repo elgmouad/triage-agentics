@@ -1,0 +1,138 @@
+# ============================================================
+#  TriageAI — Continuous Integration (Hito 2)
+#
+#  lint ──► test (one job per service) ──► publish (one image per service)
+#
+#  - lint:    hadolint on every Dockerfile, Checkstyle on the Java code,
+#             compose.yaml validation
+#  - test:    unit + integration tests (Testcontainers uses the runner's Docker)
+#  - publish: builds every image; pushes it to GitHub Container Registry on
+#             push to main or on a version tag (pull requests only build)
+#
+#  Image tags: sha-<commit> always, latest on main, X.Y.Z and X.Y on a vX.Y.Z tag.
+# ============================================================
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*.*.*"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Lint Dockerfiles (hadolint)
+        uses: hadolint/hadolint-action@v3.5.0
+        with:
+          recursive: true
+          dockerfile: Dockerfile
+          failure-threshold: warning
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+          cache-dependency-path: "*/pom.xml"
+
+      - name: Lint Java code (Checkstyle)
+        run: |
+          for service in discovery-server config-server servicio-tickets servicio-agente-triaje api-gateway; do
+            echo "::group::$service"
+            (cd "$service" && ./mvnw -B -ntp checkstyle:check)
+            echo "::endgroup::"
+          done
+
+      - name: Validate compose.yaml
+        run: cp .env.example .env && docker compose config --quiet
+
+  test:
+    name: Test ${{ matrix.service }}
+    needs: lint
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [discovery-server, config-server, servicio-tickets, servicio-agente-triaje, api-gateway]
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+          cache-dependency-path: ${{ matrix.service }}/pom.xml
+
+      - name: Unit and integration tests
+        working-directory: ${{ matrix.service }}
+        run: ./mvnw -B -ntp verify
+
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-reports-${{ matrix.service }}
+          path: ${{ matrix.service }}/target/surefire-reports/
+          retention-days: 7
+
+  publish:
+    name: Image ${{ matrix.service }}
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [discovery-server, config-server, servicio-tickets, servicio-agente-triaje, api-gateway]
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Image tags and labels
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/${{ github.repository }}/${{ matrix.service }}
+          tags: |
+            type=sha,format=short
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=ref,event=pr
+
+      - name: Build and push
+        uses: docker/build-push-action@v7
+        with:
+          context: ${{ matrix.service }}
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}

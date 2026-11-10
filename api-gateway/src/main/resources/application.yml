@@ -1,0 +1,44 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  # Rate-limit values come from config-server (config-repo/api-gateway.yml).
+  config:
+    import: optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888}
+  cloud:
+    config:
+      fail-fast: ${CONFIG_FAIL_FAST:false}
+    gateway:
+      server:
+        webflux:
+          # Default filters apply to every route: per-client token bucket in Redis.
+          default-filters:
+            - name: RequestRateLimiter
+              args:
+                key-resolver: "#{@clientePorIp}"
+                redis-rate-limiter.replenishRate: ${gateway.rate-limit.replenish-rate:10}
+                redis-rate-limiter.burstCapacity: ${gateway.rate-limit.burst-capacity:20}
+                redis-rate-limiter.requestedTokens: 1
+          # README section 7.1: /api/v1 is stripped before forwarding.
+          # /internal/** has no route on purpose: it is never exposed.
+          routes:
+            - id: tickets
+              uri: lb://servicio-tickets
+              predicates:
+                - Path=/api/v1/tickets,/api/v1/tickets/**
+              filters:
+                - StripPrefix=2
+            - id: triaje
+              uri: lb://servicio-agente-triaje
+              predicates:
+                - Path=/api/v1/triaje/**
+              filters:
+                - StripPrefix=2
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway
