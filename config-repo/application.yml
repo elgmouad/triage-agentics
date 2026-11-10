@@ -9,7 +9,10 @@ eureka:
     service-url:
       defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
   instance:
-    prefer-ip-address: true
+    # Register by DNS name (the compose service name), not by IP: containers sit
+    # on several networks and an IP from the wrong one would be unreachable.
+    prefer-ip-address: false
+    hostname: ${EUREKA_HOSTNAME:localhost}
     lease-renewal-interval-in-seconds: 30   # heartbeat (README §6.3)
 
 spring:
